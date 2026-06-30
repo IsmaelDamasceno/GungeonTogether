@@ -1,217 +1,330 @@
 using UnityEngine;
+using UnityEngine.UI;
+using UnityEngine.EventSystems;
 using GungeonTogether.Networking;
 using GungeonTogether.Networking.Steam;
+using GungeonTogether.Networking.Lan;
 using GungeonTogether.Systems.Logging;
 using Debug = GungeonTogether.Systems.Logging.Debug;
 
 namespace GungeonTogether.UI
 {
-	public static class UIManager
-	{
-		private static GameObject _root;
-		private static dfPanel _panel;
-		private static dfLabel _statusLabel;
-		private static dfButton _hostButton;
-		private static dfButton _inviteButton;
-		private static dfButton _leaveButton;
+    public static class UIManager
+    {
+        private const int LanDefaultPort = 7777;
 
-		public static void Initialise()
-		{
-			// Lazy: build only when in foyer and UI system exists.
-		}
+        private static GameObject _root;
 
-		public static void Update()
-		{
-			try
-			{
-				if (GameManager.Instance == null) return;
-				if (!GameManager.Instance.IsFoyer)
-				{
-					SetVisible(false);
-					return;
-				}
+        // Main panel
+        private static GameObject _mainPanel;
 
-				EnsureBuilt();
-				UpdateStatus();
-			}
-			catch { }
-		}
+        // Steam panel
+        private static GameObject _steamPanel;
+        private static Text _steamStatusText;
 
-		private static void EnsureBuilt()
-		{
-			if (_panel != null) return;
-			if (GameUIRoot.Instance == null) return;
-			if (GameUIRoot.Instance.Manager == null) return;
+        // LAN panel
+        private static GameObject _lanPanel;
+        private static Text _lanStatusText;
+        private static InputField _bindPortField;
+        private static InputField _ipField;
 
-			dfGUIManager gui = GameUIRoot.Instance.Manager;
+        private static bool _built;
 
-			// Find a button template for consistent styling.
-			dfButton template = null;
-			var mm = Object.FindObjectOfType<MainMenuFoyerController>();
-			if (mm != null && mm.NewGameButton != null)
-			{
-				template = mm.NewGameButton;
-			}
-			if (template == null)
-			{
-				Debug.LogWarning("[UI] Could not find MainMenuFoyerController.NewGameButton as template.");
-			}
+        public static void Initialise() { }
 
-			_root = new GameObject("GungeonTogether_UI");
-			_root.transform.parent = gui.transform;
-			_root.transform.localPosition = Vector3.zero;
-			_root.transform.localScale = Vector3.one;
+        public static void Update()
+        {
+            try
+            {
+                if (GameManager.Instance == null) return;
+                if (!GameManager.Instance.IsFoyer) { SetVisible(false); return; }
 
-			_panel = _root.AddComponent<dfPanel>();
-			_panel.Anchor = dfAnchorStyle.Top | dfAnchorStyle.Left;
-			_panel.RelativePosition = new Vector3(25f, 25f, 0f);
-			_panel.Width = 420f;
-			_panel.Height = 300f;
-			_panel.IsVisible = true;
-			_panel.Opacity = 1f;
+                EnsureBuilt();
+                UpdateStatus();
+                SetVisible(true);
+            }
+            catch { }
+        }
 
-			Debug.Log($"[UI] Panel created: Position={_panel.RelativePosition}, Size={_panel.Width}x{_panel.Height}");
+        private static void EnsureBuilt()
+        {
+            if (_built) return;
 
-			if (template != null)
-			{
-				_panel.Atlas = template.Atlas;
-				Debug.Log($"[UI] Panel atlas set from template");
-			}
+            var canvasGo = new GameObject("GungeonTogether_Canvas");
+            Object.DontDestroyOnLoad(canvasGo);
 
-			_statusLabel = CreateLabel(gui, _panel, template);
-			_statusLabel.RelativePosition = new Vector3(10f, 10f, 0f);
-			_statusLabel.Width = _panel.Width - 20f;
-			_statusLabel.Height = 70f;
-			_statusLabel.VerticalAlignment = dfVerticalAlignment.Top;
-			_statusLabel.TextScale = 1.0f;
-			_statusLabel.ProcessMarkup = true;
-			_statusLabel.ColorizeSymbols = true;
+            var canvas = canvasGo.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.sortingOrder = 100;
 
-			Debug.Log($"[UI] Status label created: Position={_statusLabel.RelativePosition}, Size={_statusLabel.Width}x{_statusLabel.Height}");
+            var scaler = canvasGo.AddComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1920, 1080);
 
-			// Layout buttons vertically within the panel
-			float currentY = _statusLabel.RelativePosition.y + _statusLabel.Height + 10f;
-			float buttonWidth = (_panel.Width - 30f) / 2f;
-			float buttonHeight = 40f;
-			float buttonSpacing = 10f;
+            canvasGo.AddComponent<GraphicRaycaster>();
+            _root = canvasGo;
 
-			Debug.Log($"[UI] Button layout: currentY={currentY}, buttonWidth={buttonWidth}, buttonHeight={buttonHeight}, spacing={buttonSpacing}");
+            if (Object.FindObjectOfType<EventSystem>() == null)
+            {
+                var esGo = new GameObject("GungeonTogether_EventSystem");
+                Object.DontDestroyOnLoad(esGo);
+                esGo.AddComponent<EventSystem>();
+                esGo.AddComponent<StandaloneInputModule>();
+            }
 
-		_hostButton = CreateButtonFromTemplate(gui, _panel, template, "GT_HostButton", "HOST LOBBY", 10f, currentY, buttonWidth, buttonHeight);
-		_hostButton.Click += OnHostClicked;
-		Debug.Log($"[UI] Host button created: Position={_hostButton.RelativePosition}, Size={_hostButton.Width}x{_hostButton.Height}, Visible={_hostButton.IsVisible}");
+            BuildMainPanel();
+            BuildSteamPanel();
+            BuildLanPanel();
 
-		_inviteButton = CreateButtonFromTemplate(gui, _panel, template, "GT_InviteButton", "INVITE", 10f + buttonWidth + buttonSpacing, currentY, buttonWidth, buttonHeight);
-		_inviteButton.Click += OnInviteClicked;
-		Debug.Log($"[UI] Invite button created: Position={_inviteButton.RelativePosition}, Size={_inviteButton.Width}x{_inviteButton.Height}, Visible={_inviteButton.IsVisible}");
+            ShowMain();
+            _built = true;
+        }
 
-		currentY += buttonHeight + buttonSpacing;
+        // ── Main panel ──────────────────────────────────────────────
 
-		_leaveButton = CreateButtonFromTemplate(gui, _panel, template, "GT_LeaveButton", "LEAVE", 10f, currentY, buttonWidth, buttonHeight);
-		}
+        private static void BuildMainPanel()
+        {
+            _mainPanel = CreatePanel("GT_MainPanel", 420, 120);
+            CreateLabel(_mainPanel, "GUNGEON TOGETHER", 0, 35, 400, 30, 18, TextAnchor.MiddleCenter);
 
-		private static void UpdateStatus()
-		{
-			if (_statusLabel == null) return;
+            float bw = 190f;
+            var steamBtn = CreateButton(_mainPanel, "STEAM", -105, -20, bw, 40);
+            var lanBtn   = CreateButton(_mainPanel, "LAN",    105, -20, bw, 40);
 
-			var lobby = SteamLobbyManager.Instance;
-			string lobbyText = lobby.IsInLobby ? ("Lobby: " + lobby.CurrentLobbyId) : "Lobby: (none)";
-			string roleText = NetworkManager.Instance.IsHost ? "Role: Host" : (NetworkManager.Instance.IsClient ? "Role: Client" : "Role: (none)");
-			string connText = NetworkManager.Instance.IsConnected ? "Net: Connected" : "Net: Disconnected";
+            steamBtn.onClick.AddListener(() => { NetworkManager.Instance.InitialiseSteam(); ShowSteam(); });
+            lanBtn.onClick.AddListener(() => ShowLan());
+        }
 
-			_statusLabel.ModifyLocalizedText("GUNGEON TOGETHER\n" + lobbyText + "\n" + roleText + " | " + connText);
+        // ── Steam panel ─────────────────────────────────────────────
 
-			// Button enable states
-			if (_hostButton != null) _hostButton.IsEnabled = !NetworkManager.Instance.IsConnected;
-			if (_inviteButton != null) _inviteButton.IsEnabled = lobby.IsInLobby;
-			if (_leaveButton != null) _leaveButton.IsEnabled = lobby.IsInLobby || NetworkManager.Instance.IsConnected;
-		}
+        private static void BuildSteamPanel()
+        {
+            _steamPanel = CreatePanel("GT_SteamPanel", 420, 220);
+            _steamStatusText = CreateLabel(_steamPanel, "", 0, 65, 400, 50, 13, TextAnchor.MiddleCenter);
 
-		private static void SetVisible(bool visible)
-		{
-			if (_panel != null) _panel.IsVisible = visible;
-		}
+            float bw = 190f;
+            var hostBtn   = CreateButton(_steamPanel, "HOST LOBBY", -105,  20, bw, 40);
+            var inviteBtn = CreateButton(_steamPanel, "INVITE",      105,  20, bw, 40);
+            var leaveBtn  = CreateButton(_steamPanel, "LEAVE",      -105, -30, bw, 40);
+            var backBtn   = CreateButton(_steamPanel, "BACK",        105, -30, bw, 40);
 
-		private static void OnHostClicked(dfControl control, dfMouseEventArgs mouseEvent)
-		{
-			Debug.Log("[UI] Host Lobby clicked.");
-			SteamLobbyManager.Instance.CreateLobby(4);
-		}
+            hostBtn.onClick.AddListener(() => SteamLobbyManager.Instance.CreateLobby(4));
+            inviteBtn.onClick.AddListener(() => SteamLobbyManager.Instance.OpenInviteDialog());
+            leaveBtn.onClick.AddListener(() => { SteamLobbyManager.Instance.LeaveLobby(); NetworkManager.Instance.Shutdown(); });
+            backBtn.onClick.AddListener(() => ShowMain());
+        }
 
-		private static void OnInviteClicked(dfControl control, dfMouseEventArgs mouseEvent)
-		{
-			Debug.Log("[UI] Invite clicked.");
-			SteamLobbyManager.Instance.OpenInviteDialog();
-		}
+        // ── LAN panel ───────────────────────────────────────────────
 
-		private static void OnLeaveClicked(dfControl control, dfMouseEventArgs mouseEvent)
-		{
-			Debug.Log("[UI] Leave clicked.");
-			SteamLobbyManager.Instance.LeaveLobby();
-			NetworkManager.Instance.Shutdown();
-		}
+        private static void BuildLanPanel()
+        {
+            _lanPanel = CreatePanel("GT_LanPanel", 420, 300);
+            _lanStatusText = CreateLabel(_lanPanel, "", 0, 120, 400, 40, 13, TextAnchor.MiddleCenter);
 
-		private static dfLabel CreateLabel(dfGUIManager gui, dfControl parent, dfButton template)
-		{
-			GameObject go = new GameObject("GT_StatusLabel");
-			go.transform.parent = parent.transform;
-			go.transform.localScale = Vector3.one;
-			var lbl = go.AddComponent<dfLabel>();
-			if (template != null)
-			{
-				lbl.Atlas = template.Atlas;
-				lbl.Font = template.Font;
-				lbl.TextScale = template.TextScale;
-				lbl.Color = template.TextColor;
-			}
-			else
-			{
-				lbl.Color = Color.white;
-			}
-			lbl.WordWrap = true;
-			lbl.IsVisible = true;
-			return lbl;
-		}
+            _bindPortField = CreateInputField(_lanPanel, GetLocalLanPort().ToString(), "Bind port", 0, 70, 400, 35);
+            _ipField       = CreateInputField(_lanPanel, "127.0.0.1:7777", "Host IP:PORT", 0, 25, 400, 35);
 
-		private static dfButton CreateButtonFromTemplate(dfGUIManager gui, dfControl parent, dfButton template, string name, string text, float posX, float posY, float width, float height)
-		{
-			// Create button from scratch instead of cloning to avoid parent hierarchy issues
-			GameObject go = new GameObject(name);
-			go.transform.parent = parent.transform;
-			go.transform.localScale = Vector3.one;
-			go.transform.localPosition = Vector3.zero;
+            float bw = 190f;
+            var hostBtn  = CreateButton(_lanPanel, "HOST",  -105, -25, bw, 40);
+            var joinBtn  = CreateButton(_lanPanel, "JOIN",   105, -25, bw, 40);
+            var leaveBtn = CreateButton(_lanPanel, "LEAVE", -105, -75, bw, 40);
+            var backBtn  = CreateButton(_lanPanel, "BACK",   105, -75, bw, 40);
 
-			dfButton btn = go.AddComponent<dfButton>();
-			
-			// Apply styling from template if available
-			if (template != null)
-			{
-				btn.Atlas = template.Atlas;
-				btn.Font = template.Font;
-				btn.TextScale = template.TextScale;
-				btn.TextColor = template.TextColor;
-				btn.BackgroundSprite = template.BackgroundSprite;
-				btn.FocusSprite = template.FocusSprite;
-				btn.HoverSprite = template.HoverSprite;
-				btn.PressedSprite = template.PressedSprite;
-				btn.DisabledSprite = template.DisabledSprite;
-			}
-			
-			btn.Text = text;
-			btn.forceUpperCase = true;
-			btn.IsInteractive = true;
-			btn.IsVisible = true;
-			btn.IsEnabled = true;
-			
-			// Set position and size
-			btn.RelativePosition = new Vector3(posX, posY, 0f);
-			btn.Width = width;
-			btn.Height = height;
-			
-			Debug.Log($"[UI] Button '{name}' created from scratch: Position={btn.RelativePosition}, Size={btn.Width}x{btn.Height}");
-			
-			return btn;
-		}
-	}
+            hostBtn.onClick.AddListener(OnLanHostClicked);
+            joinBtn.onClick.AddListener(OnLanJoinClicked);
+            leaveBtn.onClick.AddListener(() => NetworkManager.Instance.Shutdown());
+            backBtn.onClick.AddListener(() => ShowMain());
+        }
+
+        // ── Button handlers ──────────────────────────────────────────
+
+        private static void OnLanHostClicked()
+        {
+            int port = LanDefaultPort;
+            if (int.TryParse(_bindPortField?.text?.Trim(), out int p)) port = p;
+            NetworkManager.Instance.InitialiseLan(port);
+            NetworkManager.Instance.StartHosting();
+        }
+
+        private static void OnLanJoinClicked()
+        {
+            string input = _ipField?.text?.Trim();
+            if (string.IsNullOrEmpty(input)) { Debug.LogWarning("[UI] LAN join: no IP entered."); return; }
+
+            string ip;
+            int hostPort = LanDefaultPort;
+            int colon = input.LastIndexOf(':');
+            if (colon >= 0 && int.TryParse(input.Substring(colon + 1), out int pp))
+            {
+                ip = input.Substring(0, colon);
+                hostPort = pp;
+            }
+            else
+            {
+                ip = input;
+            }
+
+            int localPort = LanDefaultPort;
+            if (int.TryParse(_bindPortField?.text?.Trim(), out int bp)) localPort = bp;
+
+            NetworkManager.Instance.InitialiseLan(localPort);
+            ulong hostId = LanTransport.EncodeEndpoint(ip, hostPort);
+            NetworkManager.Instance.ConnectTo(hostId);
+        }
+
+        // ── Panel visibility ─────────────────────────────────────────
+
+        private static void ShowMain()
+        {
+            _mainPanel?.SetActive(true);
+            _steamPanel?.SetActive(false);
+            _lanPanel?.SetActive(false);
+        }
+
+        private static void ShowSteam()
+        {
+            _mainPanel?.SetActive(false);
+            _steamPanel?.SetActive(true);
+            _lanPanel?.SetActive(false);
+        }
+
+        private static void ShowLan()
+        {
+            _mainPanel?.SetActive(false);
+            _steamPanel?.SetActive(false);
+            _lanPanel?.SetActive(true);
+        }
+
+        private static void SetVisible(bool visible)
+        {
+            _root?.SetActive(visible);
+        }
+
+        // ── Status updates ───────────────────────────────────────────
+
+        private static void UpdateStatus()
+        {
+            var nm = NetworkManager.Instance;
+            string role = nm.IsHost ? "Host" : (nm.IsClient ? "Client" : "Idle");
+            string conn = nm.IsConnected ? "Connected" : "Disconnected";
+
+            if (_steamPanel != null && _steamPanel.activeSelf && _steamStatusText != null)
+            {
+                var lobby = SteamLobbyManager.Instance;
+                string lobbyText = lobby.IsInLobby ? $"Lobby: {lobby.CurrentLobbyId}" : "No lobby";
+                _steamStatusText.text = $"STEAM  |  {role}  |  {conn}\n{lobbyText}";
+            }
+
+            if (_lanPanel != null && _lanPanel.activeSelf && _lanStatusText != null)
+            {
+                _lanStatusText.text = $"LAN  |  {role}  |  {conn}";
+            }
+        }
+
+        // ── Port helper ───────────────────────────────────────────────
+
+        private static int GetLocalLanPort()
+        {
+            string[] args = System.Environment.GetCommandLineArgs();
+            for (int i = 0; i < args.Length - 1; i++)
+                if (args[i] == "--gt-lan-port" && int.TryParse(args[i + 1], out int p))
+                    return p;
+            return LanDefaultPort;
+        }
+
+        // ── Factory helpers ──────────────────────────────────────────
+
+        private static Font _font;
+        private static Font GetFont() =>
+            _font ?? (_font = Resources.GetBuiltinResource<Font>("Arial.ttf"));
+
+        private static GameObject CreatePanel(string name, float width, float height)
+        {
+            var go = new GameObject(name, typeof(RectTransform), typeof(Image));
+            go.transform.SetParent(_root.transform, false);
+
+            var rt = go.GetComponent<RectTransform>();
+            rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0f, 1f);
+            rt.anchoredPosition = new Vector2(25f, -25f);
+            rt.sizeDelta = new Vector2(width, height);
+
+            go.GetComponent<Image>().color = new Color(0f, 0f, 0f, 0.78f);
+            go.SetActive(false);
+            return go;
+        }
+
+        private static Text CreateLabel(GameObject parent, string text, float x, float y, float width, float height, int fontSize, TextAnchor anchor)
+        {
+            var go = new GameObject("GT_Label", typeof(RectTransform), typeof(Text));
+            go.transform.SetParent(parent.transform, false);
+
+            var rt = go.GetComponent<RectTransform>();
+            rt.anchoredPosition = new Vector2(x, y);
+            rt.sizeDelta = new Vector2(width, height);
+
+            var t = go.GetComponent<Text>();
+            t.text = text;
+            t.font = GetFont();
+            t.fontSize = fontSize;
+            t.color = Color.white;
+            t.alignment = anchor;
+            return t;
+        }
+
+        private static Button CreateButton(GameObject parent, string label, float x, float y, float width, float height)
+        {
+            var go = new GameObject("GT_Btn_" + label, typeof(RectTransform), typeof(Image), typeof(Button));
+            go.transform.SetParent(parent.transform, false);
+
+            var rt = go.GetComponent<RectTransform>();
+            rt.anchoredPosition = new Vector2(x, y);
+            rt.sizeDelta = new Vector2(width, height);
+
+            go.GetComponent<Image>().color = new Color(0.22f, 0.22f, 0.22f, 1f);
+
+            var btn = go.GetComponent<Button>();
+            var colors = btn.colors;
+            colors.highlightedColor = new Color(0.38f, 0.38f, 0.38f);
+            colors.pressedColor     = new Color(0.10f, 0.10f, 0.10f);
+            btn.colors = colors;
+
+            CreateLabel(go, label, 0, 0, width, height, 13, TextAnchor.MiddleCenter);
+            return btn;
+        }
+
+        private static InputField CreateInputField(GameObject parent, string defaultValue, string placeholder, float x, float y, float width, float height)
+        {
+            var go = new GameObject("GT_Input_" + placeholder, typeof(RectTransform), typeof(Image));
+            go.transform.SetParent(parent.transform, false);
+
+            var rt = go.GetComponent<RectTransform>();
+            rt.anchoredPosition = new Vector2(x, y);
+            rt.sizeDelta = new Vector2(width, height);
+            go.GetComponent<Image>().color = new Color(0.14f, 0.14f, 0.14f, 1f);
+
+            var textGo = new GameObject("Text", typeof(RectTransform), typeof(Text));
+            textGo.transform.SetParent(go.transform, false);
+            var textRt = textGo.GetComponent<RectTransform>();
+            textRt.anchorMin = Vector2.zero; textRt.anchorMax = Vector2.one;
+            textRt.offsetMin = new Vector2(8, 2); textRt.offsetMax = new Vector2(-8, -2);
+            var inputText = textGo.GetComponent<Text>();
+            inputText.font = GetFont(); inputText.fontSize = 13; inputText.color = Color.white;
+
+            var phGo = new GameObject("Placeholder", typeof(RectTransform), typeof(Text));
+            phGo.transform.SetParent(go.transform, false);
+            var phRt = phGo.GetComponent<RectTransform>();
+            phRt.anchorMin = Vector2.zero; phRt.anchorMax = Vector2.one;
+            phRt.offsetMin = new Vector2(8, 2); phRt.offsetMax = new Vector2(-8, -2);
+            var phText = phGo.GetComponent<Text>();
+            phText.font = GetFont(); phText.fontSize = 13;
+            phText.color = new Color(0.5f, 0.5f, 0.5f); phText.fontStyle = FontStyle.Italic;
+            phText.text = placeholder;
+
+            var field = go.AddComponent<InputField>();
+            field.textComponent = inputText;
+            field.placeholder = phText;
+            field.text = defaultValue;
+            return field;
+        }
+    }
 }
-

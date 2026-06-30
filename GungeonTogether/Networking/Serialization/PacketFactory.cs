@@ -8,7 +8,7 @@ namespace GungeonTogether.Networking.Serialization
 {
     public static class PacketFactory
     {
-        private static Dictionary<PacketType, Type> _packetTypes = new Dictionary<PacketType, Type>
+        private static Dictionary<PacketType, Type> _packetTypes = new()
         {
             { PacketType.PlayerPosition, typeof(PlayerPositionPacket) },
             { PacketType.ConnectionRequest, typeof(ConnectionRequestPacket) },

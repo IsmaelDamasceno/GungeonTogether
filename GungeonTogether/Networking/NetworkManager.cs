@@ -1,12 +1,13 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using GungeonTogether.Core;
 using GungeonTogether.Systems.Logging;
 using GungeonTogether.Networking.Interfaces;
 using GungeonTogether.Networking.Enums;
 using GungeonTogether.Networking.Serialization;
 using GungeonTogether.Networking.Packets;
+using GungeonTogether.Networking.Steam;
+using GungeonTogether.Networking.Lan;
 using Debug = GungeonTogether.Systems.Logging.Debug;
 
 namespace GungeonTogether.Networking
@@ -26,24 +27,36 @@ namespace GungeonTogether.Networking
 
         private ITransport _transport;
 
+        public ulong LocalPlayerId { get; private set; }
+
         public const int ProtocolVersion = 1;
 
-        public void Initialise()
+        public bool IsTransportReady => _transport != null;
+
+        public void Initialise() { }
+
+        public void InitialiseSteam() => InitialiseTransport(new SteamTransport());
+
+        public void InitialiseLan(int port) => InitialiseTransport(new LanTransport(port));
+
+        private void InitialiseTransport(ITransport transport)
         {
+            if (_transport != null)
+            {
+                Debug.LogWarning("NetworkManager: Transport already initialised, ignoring.");
+                return;
+            }
             try
             {
-                Debug.Log("NetworkManager: Creating transport...");
-                _transport = TransportFactory.Create();
+                _transport = transport;
                 _transport.Initialise();
                 _transport.OnPacketReceived += HandlePacket;
+                LocalPlayerId = _transport.LocalId;
                 Debug.Log($"NetworkManager: Transport ready ({_transport.GetType().Name}, LocalId={_transport.LocalId}).");
-
-                Debug.Log("NetworkManager Initialised.");
             }
             catch (Exception ex)
             {
-                Debug.LogError($"NetworkManager: Exception during initialization: {ex.GetType().Name}: {ex.Message}");
-                Debug.LogError($"NetworkManager: Stack trace: {ex.StackTrace}");
+                Debug.LogError($"NetworkManager: Transport init failed: {ex.GetType().Name}: {ex.Message}");
                 throw;
             }
         }
@@ -60,6 +73,7 @@ namespace GungeonTogether.Networking
 
             IsHost = true;
             IsClient = false;
+            LocalPlayerId = 1;
 
             Host = new HostController(_transport);
             Host.Initialise();
@@ -116,10 +130,11 @@ namespace GungeonTogether.Networking
                 case PacketType.ConnectionRequest:
                     if (IsHost)
                     {
-                        Host.HandleJoinRequest(senderId);
+                        ulong assignedId = Host.HandleJoinRequest(senderId);
                         Host.SendPacket(senderId, new ConnectionAcceptedPacket
                         {
-                            HostId = _transport.LocalId,
+                            HostId = LocalPlayerId,
+                            AssignedId = assignedId,
                             ProtocolVersion = ProtocolVersion,
                         }, reliable: true);
                     }
@@ -127,7 +142,11 @@ namespace GungeonTogether.Networking
 
                 case PacketType.ConnectionAccepted:
                     if (IsClient)
-                        Client.HandleConnectionAccepted(senderId, (ConnectionAcceptedPacket)packet);
+                    {
+                        var accepted = (ConnectionAcceptedPacket)packet;
+                        LocalPlayerId = accepted.AssignedId;
+                        Client.HandleConnectionAccepted(senderId, accepted);
+                    }
                     break;
 
                 case PacketType.PlayerPosition:

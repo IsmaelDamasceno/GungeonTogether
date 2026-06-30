@@ -13,7 +13,7 @@ namespace GungeonTogether.Networking.Interfaces
     public interface IHost : INetworkRole
     {
         void StartSession();
-        void HandleJoinRequest(ulong playerId);
+        ulong HandleJoinRequest(ulong transportId);
         void Broadcast(INetworkPacket packet, ulong excludeId = 0, bool reliable = true);
     }
 

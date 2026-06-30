@@ -41,7 +41,7 @@ namespace GungeonTogether.Networking.Lan
         public LanTransport(int localPort)
         {
             _localPort = localPort;
-            LocalId = EncodeEndpoint(new IPEndPoint(GetLocalIP(), localPort));
+            LocalId = (ulong)localPort;
         }
 
         public static ulong EncodeEndpoint(string ip, int port) =>
@@ -61,18 +61,7 @@ namespace GungeonTogether.Networking.Lan
             return ((ulong)ip << 16) | (ushort)ep.Port;
         }
 
-        private static IPAddress GetLocalIP()
-        {
-            try
-            {
-                using Socket s = new(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-                s.Connect("8.8.8.8", 53);
-                return ((IPEndPoint)s.LocalEndPoint).Address;
-            }
-            catch { return IPAddress.Loopback; }
-        }
-
-        public void Initialise()
+public void Initialise()
         {
             _running = true;
 
@@ -155,7 +144,10 @@ namespace GungeonTogether.Networking.Lan
             lock (_tcpLock)
             {
                 if (!_tcpStreams.ContainsKey(targetId))
+                {
+                    Debug.LogWarning($"[LAN] SendTcp: no stream for {targetId}, attempting ConnectTcp (THIS BLOCKS MAIN THREAD)");
                     ConnectTcp(targetId);
+                }
                 _tcpStreams.TryGetValue(targetId, out stream);
             }
 
@@ -231,6 +223,7 @@ namespace GungeonTogether.Networking.Lan
                     TcpClient client = _tcpListener.AcceptTcpClient();
                     IPEndPoint remote = (IPEndPoint)client.Client.RemoteEndPoint;
                     ulong remoteId = EncodeEndpoint(remote);
+                    Debug.Log($"[LAN] Accepted TCP from {remote} (remoteId={remoteId})");
 
                     lock (_tcpLock)
                         RegisterTcpClient(remoteId, client);
@@ -253,6 +246,7 @@ namespace GungeonTogether.Networking.Lan
                 {
                     ReadExact(stream, header, 4);
                     int length = BitConverter.ToInt32(header, 0);
+                    Debug.Log($"[LAN] TCP recv from {remoteId}: length={length}");
                     byte[] data = new byte[length];
                     ReadExact(stream, data, length);
                     Enqueue(remoteId, data);

@@ -11,6 +11,8 @@ namespace GungeonTogether.Networking
     {
         private readonly ITransport _transport;
         private readonly List<ulong> _connectedClients = new List<ulong>();
+        private readonly Dictionary<ulong, ulong> _assignedIds = new Dictionary<ulong, ulong>();
+        private ulong _nextClientId = 2; // host is always 1
 
         public HostController(ITransport transport)
         {
@@ -39,13 +41,17 @@ namespace GungeonTogether.Networking
             _connectedClients.Clear();
         }
 
-        public void HandleJoinRequest(ulong playerId)
+        public ulong HandleJoinRequest(ulong transportId)
         {
-            if (_connectedClients.Contains(playerId)) return;
+            if (_assignedIds.TryGetValue(transportId, out ulong existing))
+                return existing;
 
-            _connectedClients.Add(playerId);
-            _transport.Accept(playerId);
-            Debug.Log($"[Host] Player {playerId} joined the session.");
+            ulong assignedId = _nextClientId++;
+            _assignedIds[transportId] = assignedId;
+            _connectedClients.Add(transportId);
+            _transport.Accept(transportId);
+            Debug.Log($"[Host] Player {transportId} joined, assigned id={assignedId}.");
+            return assignedId;
         }
 
         public void HandlePlayerPosition(ulong senderId, PlayerPositionPacket packet)
