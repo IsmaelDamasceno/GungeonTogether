@@ -1,13 +1,14 @@
 using System;
 using System.Collections.Generic;
-using UnityEngine;
-using GungeonTogether.Systems.Logging;
-using GungeonTogether.Networking.Interfaces;
 using GungeonTogether.Networking.Enums;
-using GungeonTogether.Networking.Serialization;
-using GungeonTogether.Networking.Packets;
-using GungeonTogether.Networking.Steam;
+using GungeonTogether.Networking.Interfaces;
 using GungeonTogether.Networking.Lan;
+using GungeonTogether.Networking.Packets;
+using GungeonTogether.Networking.Proxies;
+using GungeonTogether.Networking.Serialization;
+using GungeonTogether.Networking.Steam;
+using GungeonTogether.Systems.Logging;
+using UnityEngine;
 using Debug = GungeonTogether.Systems.Logging.Debug;
 
 namespace GungeonTogether.Networking
@@ -52,11 +53,15 @@ namespace GungeonTogether.Networking
                 _transport.Initialise();
                 _transport.OnPacketReceived += HandlePacket;
                 LocalPlayerId = _transport.LocalId;
-                Debug.Log($"NetworkManager: Transport ready ({_transport.GetType().Name}, LocalId={_transport.LocalId}).");
+                Debug.Log(
+                    $"NetworkManager: Transport ready ({_transport.GetType().Name}, LocalId={_transport.LocalId})."
+                );
             }
             catch (Exception ex)
             {
-                Debug.LogError($"NetworkManager: Transport init failed: {ex.GetType().Name}: {ex.Message}");
+                Debug.LogError(
+                    $"NetworkManager: Transport init failed: {ex.GetType().Name}: {ex.Message}"
+                );
                 throw;
             }
         }
@@ -65,11 +70,25 @@ namespace GungeonTogether.Networking
         {
             _transport?.Update();
             CurrentRole?.Update();
+            NetworkObjectRegistry.Instance.Update();
+        }
+
+        public void RelayPlayerState(INetworkPacket packet, bool reliable = false)
+        {
+            if (IsHost)
+            {
+                Host?.Broadcast(packet, reliable: reliable);
+            }
+            else
+            {
+                Client?.SendPacket(0, packet, reliable);
+            }
         }
 
         public void StartHosting()
         {
-            if (CurrentRole != null) Shutdown();
+            if (CurrentRole != null)
+                Shutdown();
 
             IsHost = true;
             IsClient = false;
@@ -80,12 +99,17 @@ namespace GungeonTogether.Networking
             Host.StartSession();
 
             CurrentRole = Host;
+
+            var proxy = new PlayerProxy(LocalPlayerId, isLocal: true);
+            proxy.OnSpawned(null);
+
             Debug.Log("Started Hosting.");
         }
 
         public void ConnectTo(ulong hostId)
         {
-            if (CurrentRole != null) Shutdown();
+            if (CurrentRole != null)
+                Shutdown();
 
             IsHost = false;
             IsClient = true;
@@ -106,6 +130,7 @@ namespace GungeonTogether.Networking
             Client = null;
             IsHost = false;
             IsClient = false;
+            NetworkObjectRegistry.Instance.Clear();
         }
 
         private void HandlePacket(ulong senderId, byte[] data)
@@ -113,7 +138,8 @@ namespace GungeonTogether.Networking
             try
             {
                 INetworkPacket packet = PacketSerializer.Deserialize(data);
-                if (packet == null) return;
+                if (packet == null)
+                    return;
 
                 ProcessPacket(senderId, packet);
             }
@@ -131,12 +157,16 @@ namespace GungeonTogether.Networking
                     if (IsHost)
                     {
                         ulong assignedId = Host.HandleJoinRequest(senderId);
-                        Host.SendPacket(senderId, new ConnectionAcceptedPacket
-                        {
-                            HostId = LocalPlayerId,
-                            AssignedId = assignedId,
-                            ProtocolVersion = ProtocolVersion,
-                        }, reliable: true);
+                        Host.SendPacket(
+                            senderId,
+                            new ConnectionAcceptedPacket
+                            {
+                                HostId = LocalPlayerId,
+                                AssignedId = assignedId,
+                                ProtocolVersion = ProtocolVersion,
+                            },
+                            reliable: true
+                        );
                     }
                     break;
 
@@ -146,12 +176,24 @@ namespace GungeonTogether.Networking
                         var accepted = (ConnectionAcceptedPacket)packet;
                         LocalPlayerId = accepted.AssignedId;
                         Client.HandleConnectionAccepted(senderId, accepted);
+
+                        var proxy = new PlayerProxy(LocalPlayerId, isLocal: true);
+                        NetworkObjectRegistry.Instance.Register(proxy);
+                        proxy.OnSpawned(accepted);
                     }
                     break;
 
                 case PacketType.PlayerPosition:
+                    var posPacket = (PlayerPositionPacket)packet;
+                    if (!NetworkObjectRegistry.Instance.HasProxy(posPacket.PlayerId))
+                    {
+                        var proxy = new PlayerProxy(posPacket.PlayerId, isLocal: false);
+                        NetworkObjectRegistry.Instance.Register(proxy);
+                        proxy.OnSpawned(posPacket);
+                    }
+                    NetworkObjectRegistry.Instance.Dispatch(posPacket.PlayerId, posPacket);
                     if (IsHost)
-                        Host.HandlePlayerPosition(senderId, (PlayerPositionPacket)packet);
+                        Host.Broadcast(posPacket, excludeId: senderId, reliable: false);
                     break;
             }
         }

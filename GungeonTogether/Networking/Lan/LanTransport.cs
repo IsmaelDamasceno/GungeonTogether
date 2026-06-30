@@ -91,7 +91,11 @@ namespace GungeonTogether.Networking.Lan
             }
 
             if (packets.Length > 0 || sessionReqs.Length > 0)
-                Debug.Log($"[LAN] Update: dispatching {packets.Length} packets, {sessionReqs.Length} session reqs");
+            {
+                Debug.Log(
+                    $"[LAN] Update: dispatching {packets.Length} packets, {sessionReqs.Length} session reqs"
+                );
+            }
 
             foreach (var id in sessionReqs)
                 OnSessionRequested?.Invoke(id);

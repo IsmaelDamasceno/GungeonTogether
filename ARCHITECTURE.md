@@ -40,8 +40,8 @@ sequenceDiagram
     H->>C: ConnectionAccepted (HostId=1, AssignedId=N, ProtocolVersion)
     C->>C: LocalPlayerId = AssignedId
     Note over H,C: Session established
-    C->>H: PlayerPosition (unreliable, every 250ms)
-    H->>H: [broadcast to other clients — NOT YET IMPLEMENTED]
+    C->>H: InstancePayload (NetworkId, reliability chosen by sender)
+    H->>H: Dispatch to registry + relay to other clients
 ```
 
 Host is always player ID **1**. Each joining client gets a sequentially assigned ID starting at **2**.
@@ -97,31 +97,42 @@ Client-side prediction: if a bullet hits on YOUR screen, you report it. Host is 
 
 ---
 
-## Proxy / Network Object Registry (designed, not yet implemented)
+## Proxy / Network Object Registry
 
 ```mermaid
 classDiagram
+    class INetworkPacket {
+        +PacketType Type
+        +ulong NetworkId
+    }
     class INetworkProxy {
-        +uint NetworkId
-        +OnSpawned(data)
-        +HandlePacket(data)
+        +ulong NetworkId
+        +OnSpawned(INetworkPacket)
+        +HandlePacket(INetworkPacket)
         +OnDespawned()
+        +Update()
     }
     class EnemyProxy
     class PlayerProxy
     class ProjectileProxy
     class NetworkObjectRegistry {
-        +Register(id, proxy)
+        +Register(proxy)
+        +Unregister(id)
         +Dispatch(id, packet)
+        +Update()
+    }
+    class NetworkManager {
+        +ProcessPacket(senderId, packet)
     }
 
     INetworkProxy <|-- EnemyProxy
     INetworkProxy <|-- PlayerProxy
     INetworkProxy <|-- ProjectileProxy
     NetworkObjectRegistry --> INetworkProxy
+    NetworkManager --> NetworkObjectRegistry : Dispatch by NetworkId
 ```
 
-Each networked object has a **uint id** (instance) and a **type** (determines which proxy class handles it). The registry maps id → proxy and routes incoming state packets to the right object.
+Each networked packet carries a **NetworkId** (0 = system packet, non-zero = entity packet). `NetworkManager` routes entity packets to the registry by `NetworkId` without inspecting the payload. The registered proxy receives the packet and casts to its own type. If no proxy is registered for a given `NetworkId`, an error is logged — spawning is the game layer's responsibility, not the network layer's.
 
 ---
 
@@ -151,10 +162,10 @@ sequenceDiagram
 | UGUI overlay panel (Main / Steam / LAN) | ✅ |
 | Session handshake (ConnectionRequest / Accepted) | ✅ |
 | Host-assigned player IDs | ✅ |
-| PlayerPosition packets (client → host) | ✅ |
-| Host broadcast to other clients | ❌ |
+| InstancePayload packets routed by NetworkId | ✅ |
+| Host relay to other clients | ✅ |
 | Ghost player GameObjects + interpolation | ❌ |
-| Network object registry / proxy system | ❌ |
+| Network object registry / proxy system | ✅ |
 | Hit request / host-authoritative HP | ❌ |
 | Enemy sync | ❌ |
 | Dungeon seed sync | ❌ |
