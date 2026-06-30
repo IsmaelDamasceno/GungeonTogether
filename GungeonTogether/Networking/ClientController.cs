@@ -34,21 +34,34 @@ namespace GungeonTogether.Networking
 
             Debug.Log($"Sending connection request to {hostId}...");
 
-            SendPacket(_hostId, new ConnectionRequestPacket
-            {
-                ClientId = _transport.LocalId,
-                ProtocolVersion = NetworkManager.ProtocolVersion
-            }, reliable: true);
+            SendPacket(
+                _hostId,
+                new ConnectionRequestPacket
+                {
+                    ClientId = _transport.LocalId,
+                    ProtocolVersion = NetworkManager.ProtocolVersion,
+                },
+                reliable: true
+            );
         }
 
         public void Update()
         {
-            if (!IsConnected) return;
-            if (Time.realtimeSinceStartup < _nextPositionSendTime) return;
+            if (!IsConnected)
+            {
+                return;
+            }
+            if (Time.realtimeSinceStartup < _nextPositionSendTime)
+            {
+                return;
+            }
             _nextPositionSendTime = Time.realtimeSinceStartup + PositionSendInterval;
 
             var player = GameManager.Instance ? GameManager.Instance.PrimaryPlayer : null;
-            if (player == null) return;
+            if (player == null)
+            {
+                return;
+            }
 
             Vector3 pos3 = player.transform.position;
             var packet = new PlayerPositionPacket
@@ -59,19 +72,24 @@ namespace GungeonTogether.Networking
                 Rotation = player.transform.eulerAngles.z,
                 IsGrounded = true,
                 IsDodgeRolling = false,
-                AnimationState = 0
+                AnimationState = 0,
             };
 
             SendPacket(_hostId, packet, reliable: false);
-            Debug.Log($"[Client] Sent position packet: ({packet.Position.x:0.00}, {packet.Position.y:0.00})");
+            Debug.Log(
+                $"[Client] Sent position packet: ({packet.Position.x:0.00}, {packet.Position.y:0.00})"
+            );
         }
 
         public void HandleConnectionAccepted(ulong senderId, ConnectionAcceptedPacket packet)
         {
-            if (senderId != _hostId) return;
+            if (senderId != _hostId)
+                return;
 
             if (packet.ProtocolVersion != NetworkManager.ProtocolVersion)
-                Debug.LogWarning($"[Client] Protocol mismatch. Host={packet.ProtocolVersion} Local={NetworkManager.ProtocolVersion}");
+                Debug.LogWarning(
+                    $"[Client] Protocol mismatch. Host={packet.ProtocolVersion} Local={NetworkManager.ProtocolVersion}"
+                );
 
             IsConnected = true;
             _nextPositionSendTime = 0;
@@ -82,14 +100,16 @@ namespace GungeonTogether.Networking
 
         public void Disconnect()
         {
-            if (!IsConnected) return;
+            if (!IsConnected)
+                return;
             IsConnected = false;
             Debug.Log("Disconnected from host.");
         }
 
         public void SendPacket(ulong targetId, INetworkPacket packet, bool reliable = true)
         {
-            if (targetId == 0) targetId = _hostId;
+            if (targetId == 0)
+                targetId = _hostId;
             _transport.Send(targetId, PacketSerializer.Serialize(packet), reliable);
         }
     }
