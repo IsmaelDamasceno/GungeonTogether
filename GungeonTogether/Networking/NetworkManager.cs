@@ -6,7 +6,6 @@ using GungeonTogether.Systems.Logging;
 using GungeonTogether.Networking.Interfaces;
 using GungeonTogether.Networking.Enums;
 using GungeonTogether.Networking.Serialization;
-using GungeonTogether.Networking.Steam;
 using GungeonTogether.Networking.Packets;
 using Debug = GungeonTogether.Systems.Logging.Debug;
 
@@ -19,14 +18,13 @@ namespace GungeonTogether.Networking
 
         public bool IsHost { get; private set; }
         public bool IsClient { get; private set; }
-        public bool IsConnected => (CurrentRole != null);
+        public bool IsConnected => CurrentRole != null;
 
         public INetworkRole CurrentRole { get; private set; }
         public HostController Host { get; private set; }
         public ClientController Client { get; private set; }
 
-        private SteamP2PManager _p2p;
-        private SteamLobbyManager _lobby;
+        private ITransport _transport;
 
         public const int ProtocolVersion = 1;
 
@@ -34,20 +32,15 @@ namespace GungeonTogether.Networking
         {
             try
             {
-                Debug.Log("NetworkManager: Initializing P2P Manager...");
-                _p2p = SteamP2PManager.Instance;
-                _p2p.Initialise();
-                _p2p.OnPacketReceived += HandlePacket;
-                Debug.Log("NetworkManager: P2P Manager initialized.");
+                Debug.Log("NetworkManager: Creating transport...");
+                _transport = TransportFactory.Create();
+                _transport.Initialise();
+                _transport.OnPacketReceived += HandlePacket;
+                Debug.Log($"NetworkManager: Transport ready ({_transport.GetType().Name}, LocalId={_transport.LocalId}).");
 
-                Debug.Log("NetworkManager: Initializing Lobby Manager...");
-                _lobby = SteamLobbyManager.Instance;
-                _lobby.Initialise();
-                Debug.Log("NetworkManager: Lobby Manager initialized.");
-                
                 Debug.Log("NetworkManager Initialised.");
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 Debug.LogError($"NetworkManager: Exception during initialization: {ex.GetType().Name}: {ex.Message}");
                 Debug.LogError($"NetworkManager: Stack trace: {ex.StackTrace}");
@@ -57,8 +50,7 @@ namespace GungeonTogether.Networking
 
         public void Update()
         {
-            _lobby?.Update();
-            _p2p?.Update();
+            _transport?.Update();
             CurrentRole?.Update();
         }
 
@@ -68,11 +60,11 @@ namespace GungeonTogether.Networking
 
             IsHost = true;
             IsClient = false;
-            
-            Host = new HostController();
+
+            Host = new HostController(_transport);
             Host.Initialise();
             Host.StartSession();
-            
+
             CurrentRole = Host;
             Debug.Log("Started Hosting.");
         }
@@ -84,7 +76,7 @@ namespace GungeonTogether.Networking
             IsHost = false;
             IsClient = true;
 
-            Client = new ClientController();
+            Client = new ClientController(_transport);
             Client.Initialise();
             Client.Connect(hostId);
 
@@ -119,7 +111,6 @@ namespace GungeonTogether.Networking
 
         private void ProcessPacket(ulong senderId, INetworkPacket packet)
         {
-            // Route packet to appropriate controller or handle globally
             switch (packet.Type)
             {
                 case PacketType.ConnectionRequest:
@@ -128,7 +119,7 @@ namespace GungeonTogether.Networking
                         Host.HandleJoinRequest(senderId);
                         Host.SendPacket(senderId, new ConnectionAcceptedPacket
                         {
-                            HostId = _p2p.LocalSteamID,
+                            HostId = _transport.LocalId,
                             ProtocolVersion = ProtocolVersion,
                         }, reliable: true);
                     }
@@ -136,19 +127,13 @@ namespace GungeonTogether.Networking
 
                 case PacketType.ConnectionAccepted:
                     if (IsClient)
-                    {
                         Client.HandleConnectionAccepted(senderId, (ConnectionAcceptedPacket)packet);
-                    }
                     break;
-                
+
                 case PacketType.PlayerPosition:
                     if (IsHost)
-                    {
                         Host.HandlePlayerPosition(senderId, (PlayerPositionPacket)packet);
-                    }
                     break;
-                    
-                // ... other cases
             }
         }
 

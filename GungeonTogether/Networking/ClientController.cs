@@ -1,6 +1,6 @@
 using GungeonTogether.Networking.Interfaces;
-using GungeonTogether.Networking.Steam;
 using GungeonTogether.Networking.Packets;
+using GungeonTogether.Networking.Serialization;
 using GungeonTogether.Systems.Logging;
 using UnityEngine;
 using Debug = GungeonTogether.Systems.Logging.Debug;
@@ -9,16 +9,21 @@ namespace GungeonTogether.Networking
 {
     public class ClientController : IClient
     {
+        private readonly ITransport _transport;
         private ulong _hostId;
-        private SteamP2PManager _p2p;
+
         public bool IsConnected { get; private set; }
 
         private float _nextPositionSendTime;
         private const float PositionSendInterval = 0.25f;
 
+        public ClientController(ITransport transport)
+        {
+            _transport = transport;
+        }
+
         public void Initialise()
         {
-            _p2p = SteamP2PManager.Instance;
             Debug.Log("ClientController Initialised.");
         }
 
@@ -31,7 +36,7 @@ namespace GungeonTogether.Networking
 
             SendPacket(_hostId, new ConnectionRequestPacket
             {
-                ClientId = _p2p.LocalSteamID,
+                ClientId = _transport.LocalId,
                 ProtocolVersion = NetworkManager.ProtocolVersion
             }, reliable: true);
         }
@@ -39,7 +44,6 @@ namespace GungeonTogether.Networking
         public void Update()
         {
             if (!IsConnected) return;
-
             if (Time.realtimeSinceStartup < _nextPositionSendTime) return;
             _nextPositionSendTime = Time.realtimeSinceStartup + PositionSendInterval;
 
@@ -49,7 +53,7 @@ namespace GungeonTogether.Networking
             Vector3 pos3 = player.transform.position;
             var packet = new PlayerPositionPacket
             {
-                PlayerId = _p2p.LocalSteamID,
+                PlayerId = _transport.LocalId,
                 Position = new Vector2(pos3.x, pos3.y),
                 Velocity = Vector2.zero,
                 Rotation = player.transform.eulerAngles.z,
@@ -67,37 +71,26 @@ namespace GungeonTogether.Networking
             if (senderId != _hostId) return;
 
             if (packet.ProtocolVersion != NetworkManager.ProtocolVersion)
-            {
                 Debug.LogWarning($"[Client] Protocol mismatch. Host={packet.ProtocolVersion} Local={NetworkManager.ProtocolVersion}");
-            }
 
             IsConnected = true;
             _nextPositionSendTime = 0;
             Debug.Log($"[Client] Connection accepted by host {senderId}.");
         }
 
-        public void Shutdown()
-        {
-            Disconnect();
-        }
+        public void Shutdown() => Disconnect();
 
         public void Disconnect()
         {
-            if (IsConnected)
-            {
-                // Send disconnect packet
-                IsConnected = false;
-                Debug.Log("Disconnected from host.");
-            }
+            if (!IsConnected) return;
+            IsConnected = false;
+            Debug.Log("Disconnected from host.");
         }
 
         public void SendPacket(ulong targetId, INetworkPacket packet, bool reliable = true)
         {
-            // Clients usually only send to host
             if (targetId == 0) targetId = _hostId;
-            
-            byte[] data = Serialization.PacketSerializer.Serialize(packet);
-            _p2p.SendPacket(targetId, data, reliable);
+            _transport.Send(targetId, PacketSerializer.Serialize(packet), reliable);
         }
     }
 }
