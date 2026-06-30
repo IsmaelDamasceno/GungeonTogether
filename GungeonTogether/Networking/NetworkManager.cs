@@ -99,10 +99,6 @@ namespace GungeonTogether.Networking
             Host.StartSession();
 
             CurrentRole = Host;
-
-            var proxy = new PlayerProxy(LocalPlayerId, isLocal: true);
-            proxy.OnSpawned(null);
-
             Debug.Log("Started Hosting.");
         }
 
@@ -176,24 +172,20 @@ namespace GungeonTogether.Networking
                         var accepted = (ConnectionAcceptedPacket)packet;
                         LocalPlayerId = accepted.AssignedId;
                         Client.HandleConnectionAccepted(senderId, accepted);
-
-                        var proxy = new PlayerProxy(LocalPlayerId, isLocal: true);
-                        NetworkObjectRegistry.Instance.Register(proxy);
-                        proxy.OnSpawned(accepted);
                     }
                     break;
 
-                case PacketType.PlayerPosition:
-                    var posPacket = (PlayerPositionPacket)packet;
-                    if (!NetworkObjectRegistry.Instance.HasProxy(posPacket.PlayerId))
+                case PacketType.InstancePayload:
+                    if (!NetworkObjectRegistry.Instance.HasProxy(packet.NetworkId))
                     {
-                        var proxy = new PlayerProxy(posPacket.PlayerId, isLocal: false);
-                        NetworkObjectRegistry.Instance.Register(proxy);
-                        proxy.OnSpawned(posPacket);
+                        Debug.LogError(
+                            $"[NetworkManager] No proxy registered for NetworkId={packet.NetworkId}, dropping packet."
+                        );
+                        break;
                     }
-                    NetworkObjectRegistry.Instance.Dispatch(posPacket.PlayerId, posPacket);
+                    NetworkObjectRegistry.Instance.Dispatch(packet.NetworkId, packet);
                     if (IsHost)
-                        Host.Broadcast(posPacket, excludeId: senderId, reliable: false);
+                        Host.Broadcast(packet, excludeId: senderId, reliable: false);
                     break;
             }
         }

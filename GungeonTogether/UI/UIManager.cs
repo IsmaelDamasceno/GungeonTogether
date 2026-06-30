@@ -1,10 +1,10 @@
-using UnityEngine;
-using UnityEngine.UI;
-using UnityEngine.EventSystems;
 using GungeonTogether.Networking;
-using GungeonTogether.Networking.Steam;
 using GungeonTogether.Networking.Lan;
+using GungeonTogether.Networking.Steam;
 using GungeonTogether.Systems.Logging;
+using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.UI;
 using Debug = GungeonTogether.Systems.Logging.Debug;
 
 namespace GungeonTogether.UI
@@ -36,8 +36,13 @@ namespace GungeonTogether.UI
         {
             try
             {
-                if (GameManager.Instance == null) return;
-                if (!GameManager.Instance.IsFoyer) { SetVisible(false); return; }
+                if (GameManager.Instance == null)
+                    return;
+                if (!GameManager.Instance.IsFoyer)
+                {
+                    SetVisible(false);
+                    return;
+                }
 
                 EnsureBuilt();
                 UpdateStatus();
@@ -48,7 +53,8 @@ namespace GungeonTogether.UI
 
         private static void EnsureBuilt()
         {
-            if (_built) return;
+            if (_built)
+                return;
 
             var canvasGo = new GameObject("GungeonTogether_Canvas");
             Object.DontDestroyOnLoad(canvasGo);
@@ -85,13 +91,26 @@ namespace GungeonTogether.UI
         private static void BuildMainPanel()
         {
             _mainPanel = CreatePanel("GT_MainPanel", 420, 120);
-            CreateLabel(_mainPanel, "GUNGEON TOGETHER", 0, 35, 400, 30, 18, TextAnchor.MiddleCenter);
+            CreateLabel(
+                _mainPanel,
+                "GUNGEON TOGETHER",
+                0,
+                35,
+                400,
+                30,
+                18,
+                TextAnchor.MiddleCenter
+            );
 
             float bw = 190f;
             var steamBtn = CreateButton(_mainPanel, "STEAM", -105, -20, bw, 40);
-            var lanBtn   = CreateButton(_mainPanel, "LAN",    105, -20, bw, 40);
+            var lanBtn = CreateButton(_mainPanel, "LAN", 105, -20, bw, 40);
 
-            steamBtn.onClick.AddListener(() => { NetworkManager.Instance.InitialiseSteam(); ShowSteam(); });
+            steamBtn.onClick.AddListener(() =>
+            {
+                NetworkManager.Instance.InitialiseSteam();
+                ShowSteam();
+            });
             lanBtn.onClick.AddListener(() => ShowLan());
         }
 
@@ -100,17 +119,30 @@ namespace GungeonTogether.UI
         private static void BuildSteamPanel()
         {
             _steamPanel = CreatePanel("GT_SteamPanel", 420, 220);
-            _steamStatusText = CreateLabel(_steamPanel, "", 0, 65, 400, 50, 13, TextAnchor.MiddleCenter);
+            _steamStatusText = CreateLabel(
+                _steamPanel,
+                "",
+                0,
+                65,
+                400,
+                50,
+                13,
+                TextAnchor.MiddleCenter
+            );
 
             float bw = 190f;
-            var hostBtn   = CreateButton(_steamPanel, "HOST LOBBY", -105,  20, bw, 40);
-            var inviteBtn = CreateButton(_steamPanel, "INVITE",      105,  20, bw, 40);
-            var leaveBtn  = CreateButton(_steamPanel, "LEAVE",      -105, -30, bw, 40);
-            var backBtn   = CreateButton(_steamPanel, "BACK",        105, -30, bw, 40);
+            var hostBtn = CreateButton(_steamPanel, "HOST LOBBY", -105, 20, bw, 40);
+            var inviteBtn = CreateButton(_steamPanel, "INVITE", 105, 20, bw, 40);
+            var leaveBtn = CreateButton(_steamPanel, "LEAVE", -105, -30, bw, 40);
+            var backBtn = CreateButton(_steamPanel, "BACK", 105, -30, bw, 40);
 
             hostBtn.onClick.AddListener(() => SteamLobbyManager.Instance.CreateLobby(4));
             inviteBtn.onClick.AddListener(() => SteamLobbyManager.Instance.OpenInviteDialog());
-            leaveBtn.onClick.AddListener(() => { SteamLobbyManager.Instance.LeaveLobby(); NetworkManager.Instance.Shutdown(); });
+            leaveBtn.onClick.AddListener(() =>
+            {
+                SteamLobbyManager.Instance.LeaveLobby();
+                NetworkManager.Instance.Shutdown();
+            });
             backBtn.onClick.AddListener(() => ShowMain());
         }
 
@@ -119,16 +151,41 @@ namespace GungeonTogether.UI
         private static void BuildLanPanel()
         {
             _lanPanel = CreatePanel("GT_LanPanel", 420, 300);
-            _lanStatusText = CreateLabel(_lanPanel, "", 0, 120, 400, 40, 13, TextAnchor.MiddleCenter);
+            _lanStatusText = CreateLabel(
+                _lanPanel,
+                "",
+                0,
+                120,
+                400,
+                40,
+                13,
+                TextAnchor.MiddleCenter
+            );
 
-            _bindPortField = CreateInputField(_lanPanel, GetLocalLanPort().ToString(), "Bind port", 0, 70, 400, 35);
-            _ipField       = CreateInputField(_lanPanel, "127.0.0.1:7777", "Host IP:PORT", 0, 25, 400, 35);
+            _bindPortField = CreateInputField(
+                _lanPanel,
+                GetLocalLanPort().ToString(),
+                "Bind port",
+                0,
+                70,
+                400,
+                35
+            );
+            _ipField = CreateInputField(
+                _lanPanel,
+                "127.0.0.1:7777",
+                "Host IP:PORT",
+                0,
+                25,
+                400,
+                35
+            );
 
             float bw = 190f;
-            var hostBtn  = CreateButton(_lanPanel, "HOST",  -105, -25, bw, 40);
-            var joinBtn  = CreateButton(_lanPanel, "JOIN",   105, -25, bw, 40);
+            var hostBtn = CreateButton(_lanPanel, "HOST", -105, -25, bw, 40);
+            var joinBtn = CreateButton(_lanPanel, "JOIN", 105, -25, bw, 40);
             var leaveBtn = CreateButton(_lanPanel, "LEAVE", -105, -75, bw, 40);
-            var backBtn  = CreateButton(_lanPanel, "BACK",   105, -75, bw, 40);
+            var backBtn = CreateButton(_lanPanel, "BACK", 105, -75, bw, 40);
 
             hostBtn.onClick.AddListener(OnLanHostClicked);
             joinBtn.onClick.AddListener(OnLanJoinClicked);
@@ -141,7 +198,8 @@ namespace GungeonTogether.UI
         private static void OnLanHostClicked()
         {
             int port = LanDefaultPort;
-            if (int.TryParse(_bindPortField?.text?.Trim(), out int p)) port = p;
+            if (int.TryParse(_bindPortField?.text?.Trim(), out int p))
+                port = p;
             NetworkManager.Instance.InitialiseLan(port);
             NetworkManager.Instance.StartHosting();
         }
@@ -149,7 +207,11 @@ namespace GungeonTogether.UI
         private static void OnLanJoinClicked()
         {
             string input = _ipField?.text?.Trim();
-            if (string.IsNullOrEmpty(input)) { Debug.LogWarning("[UI] LAN join: no IP entered."); return; }
+            if (string.IsNullOrEmpty(input))
+            {
+                Debug.LogWarning("[UI] LAN join: no IP entered.");
+                return;
+            }
 
             string ip;
             int hostPort = LanDefaultPort;
@@ -165,7 +227,8 @@ namespace GungeonTogether.UI
             }
 
             int localPort = LanDefaultPort;
-            if (int.TryParse(_bindPortField?.text?.Trim(), out int bp)) localPort = bp;
+            if (int.TryParse(_bindPortField?.text?.Trim(), out int bp))
+                localPort = bp;
 
             NetworkManager.Instance.InitialiseLan(localPort);
             ulong hostId = LanTransport.EncodeEndpoint(ip, hostPort);
@@ -235,6 +298,7 @@ namespace GungeonTogether.UI
         // ── Factory helpers ──────────────────────────────────────────
 
         private static Font _font;
+
         private static Font GetFont() =>
             _font ?? (_font = Resources.GetBuiltinResource<Font>("Arial.ttf"));
 
@@ -253,7 +317,16 @@ namespace GungeonTogether.UI
             return go;
         }
 
-        private static Text CreateLabel(GameObject parent, string text, float x, float y, float width, float height, int fontSize, TextAnchor anchor)
+        private static Text CreateLabel(
+            GameObject parent,
+            string text,
+            float x,
+            float y,
+            float width,
+            float height,
+            int fontSize,
+            TextAnchor anchor
+        )
         {
             var go = new GameObject("GT_Label", typeof(RectTransform), typeof(Text));
             go.transform.SetParent(parent.transform, false);
@@ -271,9 +344,21 @@ namespace GungeonTogether.UI
             return t;
         }
 
-        private static Button CreateButton(GameObject parent, string label, float x, float y, float width, float height)
+        private static Button CreateButton(
+            GameObject parent,
+            string label,
+            float x,
+            float y,
+            float width,
+            float height
+        )
         {
-            var go = new GameObject("GT_Btn_" + label, typeof(RectTransform), typeof(Image), typeof(Button));
+            var go = new GameObject(
+                "GT_Btn_" + label,
+                typeof(RectTransform),
+                typeof(Image),
+                typeof(Button)
+            );
             go.transform.SetParent(parent.transform, false);
 
             var rt = go.GetComponent<RectTransform>();
@@ -285,16 +370,28 @@ namespace GungeonTogether.UI
             var btn = go.GetComponent<Button>();
             var colors = btn.colors;
             colors.highlightedColor = new Color(0.38f, 0.38f, 0.38f);
-            colors.pressedColor     = new Color(0.10f, 0.10f, 0.10f);
+            colors.pressedColor = new Color(0.10f, 0.10f, 0.10f);
             btn.colors = colors;
 
             CreateLabel(go, label, 0, 0, width, height, 13, TextAnchor.MiddleCenter);
             return btn;
         }
 
-        private static InputField CreateInputField(GameObject parent, string defaultValue, string placeholder, float x, float y, float width, float height)
+        private static InputField CreateInputField(
+            GameObject parent,
+            string defaultValue,
+            string placeholder,
+            float x,
+            float y,
+            float width,
+            float height
+        )
         {
-            var go = new GameObject("GT_Input_" + placeholder, typeof(RectTransform), typeof(Image));
+            var go = new GameObject(
+                "GT_Input_" + placeholder,
+                typeof(RectTransform),
+                typeof(Image)
+            );
             go.transform.SetParent(parent.transform, false);
 
             var rt = go.GetComponent<RectTransform>();
@@ -305,19 +402,27 @@ namespace GungeonTogether.UI
             var textGo = new GameObject("Text", typeof(RectTransform), typeof(Text));
             textGo.transform.SetParent(go.transform, false);
             var textRt = textGo.GetComponent<RectTransform>();
-            textRt.anchorMin = Vector2.zero; textRt.anchorMax = Vector2.one;
-            textRt.offsetMin = new Vector2(8, 2); textRt.offsetMax = new Vector2(-8, -2);
+            textRt.anchorMin = Vector2.zero;
+            textRt.anchorMax = Vector2.one;
+            textRt.offsetMin = new Vector2(8, 2);
+            textRt.offsetMax = new Vector2(-8, -2);
             var inputText = textGo.GetComponent<Text>();
-            inputText.font = GetFont(); inputText.fontSize = 13; inputText.color = Color.white;
+            inputText.font = GetFont();
+            inputText.fontSize = 13;
+            inputText.color = Color.white;
 
             var phGo = new GameObject("Placeholder", typeof(RectTransform), typeof(Text));
             phGo.transform.SetParent(go.transform, false);
             var phRt = phGo.GetComponent<RectTransform>();
-            phRt.anchorMin = Vector2.zero; phRt.anchorMax = Vector2.one;
-            phRt.offsetMin = new Vector2(8, 2); phRt.offsetMax = new Vector2(-8, -2);
+            phRt.anchorMin = Vector2.zero;
+            phRt.anchorMax = Vector2.one;
+            phRt.offsetMin = new Vector2(8, 2);
+            phRt.offsetMax = new Vector2(-8, -2);
             var phText = phGo.GetComponent<Text>();
-            phText.font = GetFont(); phText.fontSize = 13;
-            phText.color = new Color(0.5f, 0.5f, 0.5f); phText.fontStyle = FontStyle.Italic;
+            phText.font = GetFont();
+            phText.fontSize = 13;
+            phText.color = new Color(0.5f, 0.5f, 0.5f);
+            phText.fontStyle = FontStyle.Italic;
             phText.text = placeholder;
 
             var field = go.AddComponent<InputField>();

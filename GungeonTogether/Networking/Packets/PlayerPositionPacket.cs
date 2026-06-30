@@ -7,9 +7,9 @@ namespace GungeonTogether.Networking.Packets
 {
     public class PlayerPositionPacket : INetworkPacket
     {
-        public PacketType Type => PacketType.PlayerPosition;
+        public PacketType Type => PacketType.InstancePayload;
+        public ulong NetworkId { get; set; }
 
-        public ulong PlayerId;
         public Vector2 Position;
         public Vector2 Velocity;
         public float Rotation;
@@ -19,7 +19,7 @@ namespace GungeonTogether.Networking.Packets
 
         public void Serialize(BinaryWriter writer)
         {
-            writer.Write(PlayerId);
+            writer.Write(NetworkId);
             writer.Write(Position.x);
             writer.Write(Position.y);
             writer.Write(Velocity.x);
@@ -32,7 +32,7 @@ namespace GungeonTogether.Networking.Packets
 
         public void Deserialize(BinaryReader reader)
         {
-            PlayerId = reader.ReadUInt64();
+            NetworkId = reader.ReadUInt64();
             Position = new Vector2(reader.ReadSingle(), reader.ReadSingle());
             Velocity = new Vector2(reader.ReadSingle(), reader.ReadSingle());
             Rotation = reader.ReadSingle();

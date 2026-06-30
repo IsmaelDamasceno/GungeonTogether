@@ -1,4 +1,3 @@
-using GungeonTogether.Networking.Enums;
 using GungeonTogether.Networking.Interfaces;
 using GungeonTogether.Networking.Packets;
 using GungeonTogether.Systems.Logging;
@@ -43,19 +42,9 @@ namespace GungeonTogether.Networking.Proxies
 
         public void HandlePacket(INetworkPacket packet)
         {
-            if (_isLocal)
-            {
-                return;
-            }
-
-            switch (packet.Type)
-            {
-                case PacketType.PlayerPosition:
-                    var pos = (PlayerPositionPacket)packet;
-                    if (_ghost != null)
-                        _ghost.transform.position = new Vector3(pos.Position.x, pos.Position.y, 0f);
-                    break;
-            }
+            var pos = (PlayerPositionPacket)packet;
+            if (_ghost != null)
+                _ghost.transform.position = new Vector3(pos.Position.x, pos.Position.y, 0f);
         }
 
         public void Update()
@@ -80,7 +69,7 @@ namespace GungeonTogether.Networking.Proxies
             Vector3 p = player.transform.position;
             var packet = new PlayerPositionPacket
             {
-                PlayerId = NetworkId,
+                NetworkId = NetworkId,
                 Position = new Vector2(p.x, p.y),
                 Velocity = Vector2.zero,
                 Rotation = player.transform.eulerAngles.z,

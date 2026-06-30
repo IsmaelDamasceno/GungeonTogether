@@ -7,6 +7,7 @@ namespace GungeonTogether.Networking.Packets
     public class ConnectionAcceptedPacket : INetworkPacket
     {
         public PacketType Type => PacketType.ConnectionAccepted;
+        public ulong NetworkId => 0;
 
         public ulong HostId;
         public ulong AssignedId;

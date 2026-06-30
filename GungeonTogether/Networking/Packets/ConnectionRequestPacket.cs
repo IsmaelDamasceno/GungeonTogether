@@ -7,6 +7,7 @@ namespace GungeonTogether.Networking.Packets
     public class ConnectionRequestPacket : INetworkPacket
     {
         public PacketType Type => PacketType.ConnectionRequest;
+        public ulong NetworkId => 0;
 
         public ulong ClientId;
         public int ProtocolVersion;

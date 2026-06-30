@@ -6,6 +6,7 @@ namespace GungeonTogether.Networking.Interfaces
     public interface INetworkPacket
     {
         PacketType Type { get; }
+        ulong NetworkId { get; }
         void Serialize(BinaryWriter writer);
         void Deserialize(BinaryReader reader);
     }
