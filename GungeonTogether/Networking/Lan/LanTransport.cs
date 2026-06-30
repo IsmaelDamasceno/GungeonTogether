@@ -17,8 +17,10 @@ namespace GungeonTogether.Networking.Lan
         private UdpClient _udp;
         private TcpListener _tcpListener;
 
-        private readonly Dictionary<ulong, TcpClient> _tcpClients = new Dictionary<ulong, TcpClient>();
-        private readonly Dictionary<ulong, NetworkStream> _tcpStreams = new Dictionary<ulong, NetworkStream>();
+        private readonly Dictionary<ulong, TcpClient> _tcpClients =
+            new Dictionary<ulong, TcpClient>();
+        private readonly Dictionary<ulong, NetworkStream> _tcpStreams =
+            new Dictionary<ulong, NetworkStream>();
         private readonly object _tcpLock = new object();
 
         private readonly Queue<IncomingPacket> _incomingPackets = new Queue<IncomingPacket>();
@@ -61,7 +63,7 @@ namespace GungeonTogether.Networking.Lan
             return ((ulong)ip << 16) | (ushort)ep.Port;
         }
 
-public void Initialise()
+        public void Initialise()
         {
             _running = true;
 
@@ -77,23 +79,37 @@ public void Initialise()
 
         public void Update()
         {
+            ulong[] sessionReqs;
+            IncomingPacket[] packets;
+
             lock (_queueLock)
             {
-                while (_sessionRequests.Count > 0)
-                    OnSessionRequested?.Invoke(_sessionRequests.Dequeue());
+                sessionReqs = _sessionRequests.ToArray();
+                _sessionRequests.Clear();
+                packets = _incomingPackets.ToArray();
+                _incomingPackets.Clear();
+            }
 
-                while (_incomingPackets.Count > 0)
-                {
-                    IncomingPacket p = _incomingPackets.Dequeue();
-                    OnPacketReceived?.Invoke(p.SenderId, p.Data);
-                }
+            if (packets.Length > 0 || sessionReqs.Length > 0)
+                Debug.Log($"[LAN] Update: dispatching {packets.Length} packets, {sessionReqs.Length} session reqs");
+
+            foreach (var id in sessionReqs)
+                OnSessionRequested?.Invoke(id);
+
+            foreach (var p in packets)
+            {
+                Debug.Log($"[LAN] Update: firing OnPacketReceived for sender={p.SenderId}");
+                OnPacketReceived?.Invoke(p.SenderId, p.Data);
+                Debug.Log($"[LAN] Update: OnPacketReceived returned for sender={p.SenderId}");
             }
         }
 
         public void Send(ulong targetId, byte[] data, bool reliable)
         {
-            if (reliable) SendTcp(targetId, data);
-            else SendUdp(targetId, data);
+            if (reliable)
+                SendTcp(targetId, data);
+            else
+                SendUdp(targetId, data);
         }
 
         public void Accept(ulong remoteId) { }
@@ -104,7 +120,11 @@ public void Initialise()
             {
                 if (_tcpClients.TryGetValue(remoteId, out TcpClient client))
                 {
-                    try { client.Close(); } catch { }
+                    try
+                    {
+                        client.Close();
+                    }
+                    catch { }
                     _tcpClients.Remove(remoteId);
                     _tcpStreams.Remove(remoteId);
                 }
@@ -114,12 +134,24 @@ public void Initialise()
         public void Shutdown()
         {
             _running = false;
-            try { _udp?.Close(); } catch { }
-            try { _tcpListener?.Stop(); } catch { }
+            try
+            {
+                _udp?.Close();
+            }
+            catch { }
+            try
+            {
+                _tcpListener?.Stop();
+            }
+            catch { }
             lock (_tcpLock)
             {
                 foreach (var client in _tcpClients.Values)
-                    try { client.Close(); } catch { }
+                    try
+                    {
+                        client.Close();
+                    }
+                    catch { }
                 _tcpClients.Clear();
                 _tcpStreams.Clear();
             }
@@ -145,22 +177,27 @@ public void Initialise()
             {
                 if (!_tcpStreams.ContainsKey(targetId))
                 {
-                    Debug.LogWarning($"[LAN] SendTcp: no stream for {targetId}, attempting ConnectTcp (THIS BLOCKS MAIN THREAD)");
+                    Debug.LogWarning(
+                        $"[LAN] SendTcp: no stream for {targetId}, attempting ConnectTcp (THIS BLOCKS MAIN THREAD)"
+                    );
                     ConnectTcp(targetId);
                 }
                 _tcpStreams.TryGetValue(targetId, out stream);
             }
 
-            if (stream == null) return;
+            if (stream == null)
+                return;
 
             try
             {
                 byte[] header = BitConverter.GetBytes(data.Length);
+                Debug.Log($"[LAN] stream.Write to {targetId} ({data.Length} bytes)...");
                 lock (stream)
                 {
                     stream.Write(header, 0, 4);
                     stream.Write(data, 0, data.Length);
                 }
+                Debug.Log($"[LAN] stream.Write to {targetId} done.");
             }
             catch (Exception e)
             {
@@ -174,22 +211,28 @@ public void Initialise()
             try
             {
                 IPEndPoint ep = DecodeEndpoint(targetId);
-                Socket socket = new(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                Socket socket = new(
+                    AddressFamily.InterNetwork,
+                    SocketType.Stream,
+                    ProtocolType.Tcp
+                );
                 IAsyncResult ar = socket.BeginConnect(ep, null, null);
                 bool connected = ar.AsyncWaitHandle.WaitOne(2000);
-                if (!connected || !socket.Connected) { socket.Close(); return; }
+                if (!connected || !socket.Connected)
+                {
+                    socket.Close();
+                    return;
+                }
                 socket.EndConnect(ar);
 
-                TcpClient client = new()
-
-                {
-                    Client = socket
-                };
+                TcpClient client = new() { Client = socket };
                 RegisterTcpClient(targetId, client);
             }
             catch (Exception e)
             {
-                Debug.LogWarning($"LanTransport: TCP connect to {DecodeEndpoint(targetId)} failed: {e.Message}");
+                Debug.LogWarning(
+                    $"LanTransport: TCP connect to {DecodeEndpoint(targetId)} failed: {e.Message}"
+                );
             }
         }
 
@@ -206,11 +249,15 @@ public void Initialise()
             {
                 try
                 {
-                    IPEndPoint remote = new IPEndPoint(IPAddress.Any, 0);
+                    IPEndPoint remote = new(IPAddress.Any, 0);
                     byte[] data = _udp.Receive(ref remote);
                     Enqueue(EncodeEndpoint(remote), data);
                 }
-                catch { if (!_running) return; }
+                catch
+                {
+                    if (!_running)
+                        return;
+                }
             }
         }
 
@@ -231,7 +278,11 @@ public void Initialise()
                     lock (_queueLock)
                         _sessionRequests.Enqueue(remoteId);
                 }
-                catch { if (!_running) return; }
+                catch
+                {
+                    if (!_running)
+                        return;
+                }
             }
         }
 
@@ -251,7 +302,10 @@ public void Initialise()
                     ReadExact(stream, data, length);
                     Enqueue(remoteId, data);
                 }
-                catch { break; }
+                catch
+                {
+                    break;
+                }
             }
         }
 
@@ -259,15 +313,19 @@ public void Initialise()
         {
             int total = 0;
             while (total < count)
+            {
                 total += stream.Read(buffer, total, count - total);
+            }
         }
 
         private void Enqueue(ulong senderId, byte[] data)
         {
+            Debug.Log($"[LAN] Enqueue: acquiring queueLock (sender={senderId})");
             lock (_queueLock)
-                {
-                    _incomingPackets.Enqueue(new IncomingPacket { SenderId = senderId, Data = data });
-                }
+            {
+                _incomingPackets.Enqueue(new IncomingPacket { SenderId = senderId, Data = data });
+                Debug.Log($"[LAN] Enqueue: done, queue size={_incomingPackets.Count}");
+            }
         }
     }
 }
