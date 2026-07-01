@@ -12,7 +12,8 @@ namespace GungeonTogether.Networking.Serialization
         {
             { PacketType.InstancePayload, typeof(PlayerPositionPacket) },
             { PacketType.ConnectionRequest, typeof(ConnectionRequestPacket) },
-            { PacketType.ConnectionAccepted, typeof(ConnectionAcceptedPacket) }
+            { PacketType.ConnectionAccepted, typeof(ConnectionAcceptedPacket) },
+            { PacketType.ProxySpawned, typeof(ProxySpawnedPacket) }
             // Register other packets here
         };
 

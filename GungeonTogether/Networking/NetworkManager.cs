@@ -175,6 +175,21 @@ namespace GungeonTogether.Networking
                     }
                     break;
 
+                case PacketType.ProxySpawned:
+                    var spawnPacket = (ProxySpawnedPacket)packet;
+                    if (!NetworkObjectRegistry.Instance.HasProxy(spawnPacket.NetworkId))
+                    {
+                        INetworkProxy proxy = CreateProxy(spawnPacket);
+                        if (proxy != null)
+                        {
+                            NetworkObjectRegistry.Instance.Register(proxy);
+                            proxy.OnSpawned(spawnPacket);
+                        }
+                    }
+                    if (IsHost)
+                        Host.Broadcast(spawnPacket, excludeId: senderId, reliable: true);
+                    break;
+
                 case PacketType.InstancePayload:
                     if (!NetworkObjectRegistry.Instance.HasProxy(packet.NetworkId))
                     {
@@ -187,6 +202,20 @@ namespace GungeonTogether.Networking
                     if (IsHost)
                         Host.Broadcast(packet, excludeId: senderId, reliable: false);
                     break;
+            }
+        }
+
+        private INetworkProxy CreateProxy(ProxySpawnedPacket packet)
+        {
+            switch (packet.ProxyType)
+            {
+                case ProxyType.Player:
+                    return new PlayerProxy(packet.NetworkId, isLocal: false);
+                default:
+                    Debug.LogWarning(
+                        $"[NetworkManager] No proxy class for ProxyType={packet.ProxyType}"
+                    );
+                    return null;
             }
         }
 

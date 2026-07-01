@@ -1,12 +1,12 @@
 using BepInEx;
-using UnityEngine;
 using GungeonTogether.Networking;
-using GungeonTogether.Systems.Logging;
+using GungeonTogether.Networking.Proxies;
 using GungeonTogether.UI;
+using HarmonyLib;
 
 namespace GungeonTogether.Core
 {
-    [BepInPlugin("com.llamerrr.gungeontogether", "Gungeon Together", "1.0.0")]
+    [BepInPlugin("com.ismasel.gungeontogether", "Gungeon Together", "1.0.0")]
     [BepInDependency("etgmodding.etg.mtgapi")]
     public class GungeonTogetherMod : BaseUnityPlugin
     {
@@ -16,12 +16,15 @@ namespace GungeonTogether.Core
         {
             Instance = this;
             Logger.LogInfo("Gungeon Together started!");
-            
+
             try
             {
                 // Initialise Logging
-                GungeonTogether.Systems.Logging.Logger.Initialise(base.Logger);
+                Systems.Logging.Logger.Initialise(base.Logger);
                 Logger.LogInfo("Logging initialized.");
+
+                new Harmony("com.ismasel.gungeontogether").PatchAll();
+                InitProxies();
 
                 // Initialise Networking
                 Logger.LogInfo("Initializing NetworkManager...");
@@ -32,12 +35,14 @@ namespace GungeonTogether.Core
                 Logger.LogInfo("Initializing UIManager...");
                 UIManager.Initialise();
                 Logger.LogInfo("UIManager initialized.");
-                
+
                 Logger.LogInfo("Gungeon Together fully initialized!");
             }
             catch (System.Exception ex)
             {
-                Logger.LogError($"Exception during initialization: {ex.GetType().Name}: {ex.Message}");
+                Logger.LogError(
+                    $"Exception during initialization: {ex.GetType().Name}: {ex.Message}"
+                );
                 Logger.LogError($"Stack trace: {ex.StackTrace}");
                 throw;
             }
@@ -55,5 +60,10 @@ namespace GungeonTogether.Core
                 Logger.LogError($"Error in Update: {ex.Message}");
             }
         }
+
+        /// <summary>
+        /// Statically Initialize Relevant Proxies
+        /// </summary>
+        private void InitProxies() { }
     }
 }

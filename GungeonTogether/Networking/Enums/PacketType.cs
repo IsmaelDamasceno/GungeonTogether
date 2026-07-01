@@ -6,6 +6,7 @@ namespace GungeonTogether.Networking.Enums
         InstancePayload = 1,
         ConnectionRequest = 2,
         ConnectionAccepted = 3,
+        ProxySpawned = 4,
         // Add more packet types here
     }
 }
