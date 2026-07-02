@@ -10,7 +10,6 @@ namespace GungeonNearby.Networking.Steam
     /// </summary>
     public static partial class SteamReflectionHelper
     {
-
         private static bool initialised = false;
 
         // Cache for Steam ID to prevent repeated expensive reflection calls
@@ -59,16 +58,34 @@ namespace GungeonNearby.Networking.Steam
                 // Find Steam types in Steamworks namespace (discovered via diagnostics)
                 steamUserType = steamworksAssembly.GetType("Steamworks.SteamUser", false);
                 steamFriendsType = steamworksAssembly.GetType("Steamworks.SteamFriends", false);
-                steamNetworkingType = steamworksAssembly.GetType("Steamworks.SteamNetworking", false);
-                steamMatchmakingType = steamworksAssembly.GetType("Steamworks.SteamMatchmaking", false);
+                steamNetworkingType = steamworksAssembly.GetType(
+                    "Steamworks.SteamNetworking",
+                    false
+                );
+                steamMatchmakingType = steamworksAssembly.GetType(
+                    "Steamworks.SteamMatchmaking",
+                    false
+                );
                 steamUtilsType = steamworksAssembly.GetType("Steamworks.SteamUtils", false);
                 steamAppsType = steamworksAssembly.GetType("Steamworks.SteamApps", false);
 
                 // Additional callback types
-                gameJoinRequestedCallbackType = steamworksAssembly.GetType("Steamworks.GameRichPresenceJoinRequested_t", false);
-                lobbyEnterCallbackType = steamworksAssembly.GetType("Steamworks.LobbyEnter_t", false);
-                lobbyCreatedCallbackType = steamworksAssembly.GetType("Steamworks.LobbyCreated_t", false);
-                lobbyDataUpdateCallbackType = steamworksAssembly.GetType("Steamworks.LobbyDataUpdate_t", false);
+                gameJoinRequestedCallbackType = steamworksAssembly.GetType(
+                    "Steamworks.GameRichPresenceJoinRequested_t",
+                    false
+                );
+                lobbyEnterCallbackType = steamworksAssembly.GetType(
+                    "Steamworks.LobbyEnter_t",
+                    false
+                );
+                lobbyCreatedCallbackType = steamworksAssembly.GetType(
+                    "Steamworks.LobbyCreated_t",
+                    false
+                );
+                lobbyDataUpdateCallbackType = steamworksAssembly.GetType(
+                    "Steamworks.LobbyDataUpdate_t",
+                    false
+                );
 
                 Debug.Log($"[ETGSteamP2P] Found Steamworks types:");
                 Debug.Log($"  SteamUser: {steamUserType?.FullName ?? "NOT FOUND"}");
@@ -77,10 +94,18 @@ namespace GungeonNearby.Networking.Steam
                 Debug.Log($"  SteamMatchmaking: {steamMatchmakingType?.FullName ?? "NOT FOUND"}");
                 Debug.Log($"  SteamUtils: {steamUtilsType?.FullName ?? "NOT FOUND"}");
                 Debug.Log($"  SteamApps: {steamAppsType?.FullName ?? "NOT FOUND"}");
-                Debug.Log($"  GameJoinRequestedCallback: {gameJoinRequestedCallbackType?.FullName ?? "NOT FOUND"}");
-                Debug.Log($"  LobbyEnterCallback: {lobbyEnterCallbackType?.FullName ?? "NOT FOUND"}");
-                Debug.Log($"  LobbyCreatedCallback: {lobbyCreatedCallbackType?.FullName ?? "NOT FOUND"}");
-                Debug.Log($"  LobbyDataUpdateCallback: {lobbyDataUpdateCallbackType?.FullName ?? "NOT FOUND"}");
+                Debug.Log(
+                    $"  GameJoinRequestedCallback: {gameJoinRequestedCallbackType?.FullName ?? "NOT FOUND"}"
+                );
+                Debug.Log(
+                    $"  LobbyEnterCallback: {lobbyEnterCallbackType?.FullName ?? "NOT FOUND"}"
+                );
+                Debug.Log(
+                    $"  LobbyCreatedCallback: {lobbyCreatedCallbackType?.FullName ?? "NOT FOUND"}"
+                );
+                Debug.Log(
+                    $"  LobbyDataUpdateCallback: {lobbyDataUpdateCallbackType?.FullName ?? "NOT FOUND"}"
+                );
 
                 // Cache frequently used methods using proper Steamworks.NET method names
                 CacheSteamUserMethods();
@@ -88,7 +113,10 @@ namespace GungeonNearby.Networking.Steam
                 CacheSteamFriendsMethods();
                 CacheSteamMatchmakingMethods();
 
-                initialised = (!ReferenceEquals(steamNetworkingType, null) && !ReferenceEquals(sendP2PPacketMethod, null));
+                initialised = (
+                    !ReferenceEquals(steamNetworkingType, null)
+                    && !ReferenceEquals(sendP2PPacketMethod, null)
+                );
 
                 if (initialised)
                 {
@@ -121,10 +149,16 @@ namespace GungeonNearby.Networking.Steam
             if (!ReferenceEquals(steamUserType, null))
             {
                 // Try common Steamworks.NET method names for getting Steam ID
-                getSteamIdMethod = steamUserType.GetMethod("GetSteamID", BindingFlags.Public | BindingFlags.Static);
+                getSteamIdMethod = steamUserType.GetMethod(
+                    "GetSteamID",
+                    BindingFlags.Public | BindingFlags.Static
+                );
                 if (ReferenceEquals(getSteamIdMethod, null))
                 {
-                    getSteamIdMethod = steamUserType.GetMethod("get_SteamID", BindingFlags.Public | BindingFlags.Static);
+                    getSteamIdMethod = steamUserType.GetMethod(
+                        "get_SteamID",
+                        BindingFlags.Public | BindingFlags.Static
+                    );
                 }
             }
         }
@@ -136,14 +170,26 @@ namespace GungeonNearby.Networking.Steam
                 // Discover all SendP2PPacket method overloads to find the correct signature
                 DiscoverSendP2PPacketSignatures(steamNetworkingType);
 
-                readP2PPacketMethod = steamNetworkingType.GetMethod("ReadP2PPacket", BindingFlags.Public | BindingFlags.Static);
-                readP2PSessionRequestMethod = steamNetworkingType.GetMethod("ReadP2PSessionRequest", BindingFlags.Public | BindingFlags.Static);
+                readP2PPacketMethod = steamNetworkingType.GetMethod(
+                    "ReadP2PPacket",
+                    BindingFlags.Public | BindingFlags.Static
+                );
+                readP2PSessionRequestMethod = steamNetworkingType.GetMethod(
+                    "ReadP2PSessionRequest",
+                    BindingFlags.Public | BindingFlags.Static
+                );
 
                 // Try to discover IsP2PPacketAvailable with different signatures
                 DiscoverIsP2PPacketAvailableSignature(steamNetworkingType);
 
-                acceptP2PSessionMethod = steamNetworkingType.GetMethod("AcceptP2PSessionWithUser", BindingFlags.Public | BindingFlags.Static);
-                closeP2PSessionMethod = steamNetworkingType.GetMethod("CloseP2PSessionWithUser", BindingFlags.Public | BindingFlags.Static);
+                acceptP2PSessionMethod = steamNetworkingType.GetMethod(
+                    "AcceptP2PSessionWithUser",
+                    BindingFlags.Public | BindingFlags.Static
+                );
+                closeP2PSessionMethod = steamNetworkingType.GetMethod(
+                    "CloseP2PSessionWithUser",
+                    BindingFlags.Public | BindingFlags.Static
+                );
 
                 // Debug output for packet methods
                 // Debug.Log($"[ETGSteamP2P] Packet methods found:");
@@ -154,11 +200,16 @@ namespace GungeonNearby.Networking.Steam
                 // Debug.Log($"[ETGSteamP2P]   CloseP2PSessionWithUser: {(!ReferenceEquals(closeP2PSessionMethod, null) ? "Found" : "Not found")}");
 
                 // Log all available networking methods for debugging
-                if (ReferenceEquals(readP2PPacketMethod, null) || ReferenceEquals(isP2PPacketAvailableMethod, null))
+                if (
+                    ReferenceEquals(readP2PPacketMethod, null)
+                    || ReferenceEquals(isP2PPacketAvailableMethod, null)
+                )
                 {
                     // Debug.LogWarning("[ETGSteamP2P] P2P packet reception methods not found!");
                     // List all methods containing "P2P" for debugging
-                    var allMethods = steamNetworkingType.GetMethods(BindingFlags.Public | BindingFlags.Static);
+                    var allMethods = steamNetworkingType.GetMethods(
+                        BindingFlags.Public | BindingFlags.Static
+                    );
                     // Debug.Log("[ETGSteamP2P] Available SteamNetworking methods containing 'P2P':");
                     foreach (var method in allMethods)
                     {
@@ -168,8 +219,10 @@ namespace GungeonNearby.Networking.Steam
                             var parameters = method.GetParameters();
                             for (int i = 0; i < parameters.Length; i++)
                             {
-                                if (i > 0) paramStr += ", ";
-                                paramStr += parameters[i].ParameterType.Name + " " + parameters[i].Name;
+                                if (i > 0)
+                                    paramStr += ", ";
+                                paramStr +=
+                                    parameters[i].ParameterType.Name + " " + parameters[i].Name;
                             }
                             // Debug.Log($"[ETGSteamP2P]   {method.Name}({paramStr})");
                         }
@@ -182,16 +235,40 @@ namespace GungeonNearby.Networking.Steam
         {
             if (!ReferenceEquals(steamFriendsType, null))
             {
-                setRichPresenceMethod = steamFriendsType.GetMethod("SetRichPresence", BindingFlags.Public | BindingFlags.Static);
-                clearRichPresenceMethod = steamFriendsType.GetMethod("ClearRichPresence", BindingFlags.Public | BindingFlags.Static);
+                setRichPresenceMethod = steamFriendsType.GetMethod(
+                    "SetRichPresence",
+                    BindingFlags.Public | BindingFlags.Static
+                );
+                clearRichPresenceMethod = steamFriendsType.GetMethod(
+                    "ClearRichPresence",
+                    BindingFlags.Public | BindingFlags.Static
+                );
 
                 // Cache friends list methods
-                getFriendCountMethod = steamFriendsType.GetMethod("GetFriendCount", BindingFlags.Public | BindingFlags.Static);
-                getFriendByIndexMethod = steamFriendsType.GetMethod("GetFriendByIndex", BindingFlags.Public | BindingFlags.Static);
-                getFriendPersonaNameMethod = steamFriendsType.GetMethod("GetFriendPersonaName", BindingFlags.Public | BindingFlags.Static);
-                getFriendPersonaStateMethod = steamFriendsType.GetMethod("GetFriendPersonaState", BindingFlags.Public | BindingFlags.Static);
-                getFriendGamePlayedMethod = steamFriendsType.GetMethod("GetFriendGamePlayed", BindingFlags.Public | BindingFlags.Static);
-                getFriendRichPresenceMethod = steamFriendsType.GetMethod("GetFriendRichPresence", BindingFlags.Public | BindingFlags.Static);
+                getFriendCountMethod = steamFriendsType.GetMethod(
+                    "GetFriendCount",
+                    BindingFlags.Public | BindingFlags.Static
+                );
+                getFriendByIndexMethod = steamFriendsType.GetMethod(
+                    "GetFriendByIndex",
+                    BindingFlags.Public | BindingFlags.Static
+                );
+                getFriendPersonaNameMethod = steamFriendsType.GetMethod(
+                    "GetFriendPersonaName",
+                    BindingFlags.Public | BindingFlags.Static
+                );
+                getFriendPersonaStateMethod = steamFriendsType.GetMethod(
+                    "GetFriendPersonaState",
+                    BindingFlags.Public | BindingFlags.Static
+                );
+                getFriendGamePlayedMethod = steamFriendsType.GetMethod(
+                    "GetFriendGamePlayed",
+                    BindingFlags.Public | BindingFlags.Static
+                );
+                getFriendRichPresenceMethod = steamFriendsType.GetMethod(
+                    "GetFriendRichPresence",
+                    BindingFlags.Public | BindingFlags.Static
+                );
 
                 // Debug.Log($"[ETGSteamP2P] Friends methods found:");
                 // Debug.Log($"  GetFriendCount: {(!ReferenceEquals(getFriendCountMethod, null) ? "Found" : "Not found")}");
@@ -208,9 +285,13 @@ namespace GungeonNearby.Networking.Steam
                     var paramStr = "";
                     for (int i = 0; i < parameters.Length; i++)
                     {
-                        if (i > 0) paramStr += ", ";
-                        string prefix = parameters[i].IsOut ? "out " : (parameters[i].ParameterType.IsByRef ? "ref " : "");
-                        paramStr += $"{prefix}{parameters[i].ParameterType.Name} {parameters[i].Name}";
+                        if (i > 0)
+                            paramStr += ", ";
+                        string prefix = parameters[i].IsOut
+                            ? "out "
+                            : (parameters[i].ParameterType.IsByRef ? "ref " : "");
+                        paramStr +=
+                            $"{prefix}{parameters[i].ParameterType.Name} {parameters[i].Name}";
                     }
                     // Debug.Log($"[ETGSteamP2P]   GetFriendGamePlayed signature: {getFriendGamePlayedMethod.ReturnType.Name} GetFriendGamePlayed({paramStr})");
                 }
@@ -221,14 +302,38 @@ namespace GungeonNearby.Networking.Steam
         {
             if (!ReferenceEquals(steamMatchmakingType, null))
             {
-                createLobbyMethod = steamMatchmakingType.GetMethod("CreateLobby", BindingFlags.Public | BindingFlags.Static);
-                joinLobbyMethod = steamMatchmakingType.GetMethod("JoinLobby", BindingFlags.Public | BindingFlags.Static);
-                leaveLobbyMethod = steamMatchmakingType.GetMethod("LeaveLobby", BindingFlags.Public | BindingFlags.Static);
-                setLobbyDataMethod = steamMatchmakingType.GetMethod("SetLobbyData", BindingFlags.Public | BindingFlags.Static);
-                getLobbyDataMethod = steamMatchmakingType.GetMethod("GetLobbyData", BindingFlags.Public | BindingFlags.Static);
-                setLobbyJoinableMethod = steamMatchmakingType.GetMethod("SetLobbyJoinable", BindingFlags.Public | BindingFlags.Static);
-                inviteUserToLobbyMethod = steamMatchmakingType.GetMethod("InviteUserToLobby", BindingFlags.Public | BindingFlags.Static);
-                getLobbyOwnerMethod = steamMatchmakingType.GetMethod("GetLobbyOwner", BindingFlags.Public | BindingFlags.Static);
+                createLobbyMethod = steamMatchmakingType.GetMethod(
+                    "CreateLobby",
+                    BindingFlags.Public | BindingFlags.Static
+                );
+                joinLobbyMethod = steamMatchmakingType.GetMethod(
+                    "JoinLobby",
+                    BindingFlags.Public | BindingFlags.Static
+                );
+                leaveLobbyMethod = steamMatchmakingType.GetMethod(
+                    "LeaveLobby",
+                    BindingFlags.Public | BindingFlags.Static
+                );
+                setLobbyDataMethod = steamMatchmakingType.GetMethod(
+                    "SetLobbyData",
+                    BindingFlags.Public | BindingFlags.Static
+                );
+                getLobbyDataMethod = steamMatchmakingType.GetMethod(
+                    "GetLobbyData",
+                    BindingFlags.Public | BindingFlags.Static
+                );
+                setLobbyJoinableMethod = steamMatchmakingType.GetMethod(
+                    "SetLobbyJoinable",
+                    BindingFlags.Public | BindingFlags.Static
+                );
+                inviteUserToLobbyMethod = steamMatchmakingType.GetMethod(
+                    "InviteUserToLobby",
+                    BindingFlags.Public | BindingFlags.Static
+                );
+                getLobbyOwnerMethod = steamMatchmakingType.GetMethod(
+                    "GetLobbyOwner",
+                    BindingFlags.Public | BindingFlags.Static
+                );
             }
         }
 
@@ -239,7 +344,9 @@ namespace GungeonNearby.Networking.Steam
         {
             try
             {
-                var allMethods = steamNetworkingType.GetMethods(BindingFlags.Public | BindingFlags.Static);
+                var allMethods = steamNetworkingType.GetMethods(
+                    BindingFlags.Public | BindingFlags.Static
+                );
                 var sendMethods = new List<MethodInfo>();
 
                 // Find all SendP2PPacket methods
@@ -261,7 +368,8 @@ namespace GungeonNearby.Networking.Steam
 
                     for (int j = 0; j < parameters.Length; j++)
                     {
-                        if (j > 0) paramStr += ", ";
+                        if (j > 0)
+                            paramStr += ", ";
                         paramStr += parameters[j].ParameterType.Name + " " + parameters[j].Name;
                     }
 
@@ -276,7 +384,9 @@ namespace GungeonNearby.Networking.Steam
             }
             catch (Exception e)
             {
-                Debug.LogError($"[ETGSteamP2P] Error discovering SendP2PPacket signatures: {e.Message}");
+                Debug.LogError(
+                    $"[ETGSteamP2P] Error discovering SendP2PPacket signatures: {e.Message}"
+                );
             }
         }
 
@@ -289,7 +399,9 @@ namespace GungeonNearby.Networking.Steam
             {
                 // Debug.Log("[ETGSteamP2P] Discovering IsP2PPacketAvailable method signature...");
 
-                var allMethodsTemp = steamNetworkingType.GetMethods(BindingFlags.Public | BindingFlags.Static);
+                var allMethodsTemp = steamNetworkingType.GetMethods(
+                    BindingFlags.Public | BindingFlags.Static
+                );
                 var allMethodsList = new List<MethodInfo>();
 
                 // Filter methods with name "IsP2PPacketAvailable" without LINQ
@@ -325,9 +437,14 @@ namespace GungeonNearby.Networking.Steam
                     if (parameters.Length >= 1 && parameters.Length <= 2)
                     {
                         var firstParam = parameters[0];
-                        bool isOutUint = firstParam.IsOut &&
-                                        (firstParam.ParameterType.GetElementType().Equals(typeof(uint)) ||
-                                         firstParam.ParameterType.GetElementType().Equals(typeof(System.UInt32)));
+                        bool isOutUint =
+                            firstParam.IsOut
+                            && (
+                                firstParam.ParameterType.GetElementType().Equals(typeof(uint))
+                                || firstParam
+                                    .ParameterType.GetElementType()
+                                    .Equals(typeof(System.UInt32))
+                            );
 
                         if (isOutUint)
                         {
@@ -370,9 +487,14 @@ namespace GungeonNearby.Networking.Steam
             }
             catch (Exception e)
             {
-                Debug.LogError($"[ETGSteamP2P] Error discovering IsP2PPacketAvailable signature: {e.Message}");
+                Debug.LogError(
+                    $"[ETGSteamP2P] Error discovering IsP2PPacketAvailable signature: {e.Message}"
+                );
                 // Fallback to original method
-                isP2PPacketAvailableMethod = steamNetworkingType.GetMethod("IsP2PPacketAvailable", BindingFlags.Public | BindingFlags.Static);
+                isP2PPacketAvailableMethod = steamNetworkingType.GetMethod(
+                    "IsP2PPacketAvailable",
+                    BindingFlags.Public | BindingFlags.Static
+                );
             }
         }
 
@@ -422,11 +544,12 @@ namespace GungeonNearby.Networking.Steam
                             Type resultType = result.GetType();
 
                             // Check for common Steamworks struct field names
-                            var idField = resultType.GetField("m_SteamID") ??
-                                         resultType.GetField("SteamID") ??
-                                         resultType.GetField("steamID") ??
-                                         resultType.GetField("value") ??
-                                         resultType.GetField("Value");
+                            var idField =
+                                resultType.GetField("m_SteamID")
+                                ?? resultType.GetField("SteamID")
+                                ?? resultType.GetField("steamID")
+                                ?? resultType.GetField("value")
+                                ?? resultType.GetField("Value");
 
                             if (!ReferenceEquals(idField, null))
                             {
@@ -452,7 +575,9 @@ namespace GungeonNearby.Networking.Steam
                             // Only log warning once, not on every call
                             if (!steamIdCached)
                             {
-                                Debug.LogWarning($"[ETGSteamP2P] Could not extract Steam ID from type {resultType.FullName}");
+                                Debug.LogWarning(
+                                    $"[ETGSteamP2P] Could not extract Steam ID from type {resultType.FullName}"
+                                );
                             }
                         }
                     }
@@ -497,7 +622,9 @@ namespace GungeonNearby.Networking.Steam
                 if (ReferenceEquals(steamNetworkingType, null))
                     return false;
 
-                var allMethods = steamNetworkingType.GetMethods(BindingFlags.Public | BindingFlags.Static);
+                var allMethods = steamNetworkingType.GetMethods(
+                    BindingFlags.Public | BindingFlags.Static
+                );
                 var sendMethods = new List<MethodInfo>();
 
                 // Find all SendP2PPacket methods
@@ -512,7 +639,13 @@ namespace GungeonNearby.Networking.Steam
                 // If we have a working signature, try it first
                 if (workingSendSignatureIndex >= 0 && workingSendSignatureIndex < sendMethods.Count)
                 {
-                    if (TrySendWithSignature(sendMethods[workingSendSignatureIndex], steamIdParam, data))
+                    if (
+                        TrySendWithSignature(
+                            sendMethods[workingSendSignatureIndex],
+                            steamIdParam,
+                            data
+                        )
+                    )
                     {
                         return true;
                     }
@@ -521,7 +654,8 @@ namespace GungeonNearby.Networking.Steam
                 // Try all signatures
                 for (int i = 0; i < sendMethods.Count; i++)
                 {
-                    if (i == workingSendSignatureIndex) continue; // Already tried this one
+                    if (i == workingSendSignatureIndex)
+                        continue; // Already tried this one
 
                     if (TrySendWithSignature(sendMethods[i], steamIdParam, data))
                     {
@@ -534,12 +668,18 @@ namespace GungeonNearby.Networking.Steam
             }
             catch (Exception e)
             {
-                Debug.LogError($"[ETGSteamP2P] Error trying different send signatures: {e.Message}");
+                Debug.LogError(
+                    $"[ETGSteamP2P] Error trying different send signatures: {e.Message}"
+                );
                 return false;
             }
         }
 
-        private static bool TrySendWithSignature(MethodInfo method, object steamIdParam, byte[] data)
+        private static bool TrySendWithSignature(
+            MethodInfo method,
+            object steamIdParam,
+            byte[] data
+        )
         {
             try
             {
@@ -548,17 +688,26 @@ namespace GungeonNearby.Networking.Steam
                 // Try different parameter combinations based on common Steamworks patterns
                 if (parameters.Length == 5) // Common: steamid, data, length, channel, sendtype
                 {
-                    object result = method.Invoke(null, new object[] { steamIdParam, data, (uint)data.Length, 0, 2 });
+                    object result = method.Invoke(
+                        null,
+                        new object[] { steamIdParam, data, (uint)data.Length, 0, 2 }
+                    );
                     return result is bool success && success;
                 }
                 else if (parameters.Length == 4) // steamid, data, length, channel
                 {
-                    object result = method.Invoke(null, new object[] { steamIdParam, data, (uint)data.Length, 0 });
+                    object result = method.Invoke(
+                        null,
+                        new object[] { steamIdParam, data, (uint)data.Length, 0 }
+                    );
                     return result is bool success && success;
                 }
                 else if (parameters.Length == 3) // steamid, data, length
                 {
-                    object result = method.Invoke(null, new object[] { steamIdParam, data, (uint)data.Length });
+                    object result = method.Invoke(
+                        null,
+                        new object[] { steamIdParam, data, (uint)data.Length }
+                    );
                     return result is bool success && success;
                 }
 
@@ -592,7 +741,9 @@ namespace GungeonNearby.Networking.Steam
 
                     for (int i = 0; i < assemblies.Length; i++)
                     {
-                        if (string.Equals(assemblies[i].GetName().Name, "Assembly-CSharp-firstpass"))
+                        if (
+                            string.Equals(assemblies[i].GetName().Name, "Assembly-CSharp-firstpass")
+                        )
                         {
                             steamworksAssembly = assemblies[i];
                             cachedSteamworksAssembly = steamworksAssembly; // Cache it
@@ -657,17 +808,24 @@ namespace GungeonNearby.Networking.Steam
                 var steamIdParam = ConvertToCSteamID(friendSteamId);
                 if (ReferenceEquals(steamIdParam, null))
                 {
-                    Debug.LogWarning($"[ETGSteamP2P] Could not convert Steam ID {friendSteamId} to CSteamID");
+                    Debug.LogWarning(
+                        $"[ETGSteamP2P] Could not convert Steam ID {friendSteamId} to CSteamID"
+                    );
                     return "";
                 }
 
-                var result = getFriendRichPresenceMethod.Invoke(null, new object[] { steamIdParam, key });
+                var result = getFriendRichPresenceMethod.Invoke(
+                    null,
+                    new object[] { steamIdParam, key }
+                );
 
                 return result?.ToString() ?? "";
             }
             catch (Exception e)
             {
-                Debug.LogWarning($"[ETGSteamP2P] Error getting friend Rich Presence for key '{key}': {e.Message}");
+                Debug.LogWarning(
+                    $"[ETGSteamP2P] Error getting friend Rich Presence for key '{key}': {e.Message}"
+                );
                 return "";
             }
         }
@@ -729,11 +887,12 @@ namespace GungeonNearby.Networking.Steam
                             Type resultType = result.GetType();
 
                             // Check for common Steamworks struct field names
-                            var idField = resultType.GetField("m_SteamID") ??
-                                         resultType.GetField("SteamID") ??
-                                         resultType.GetField("steamID") ??
-                                         resultType.GetField("value") ??
-                                         resultType.GetField("Value");
+                            var idField =
+                                resultType.GetField("m_SteamID")
+                                ?? resultType.GetField("SteamID")
+                                ?? resultType.GetField("steamID")
+                                ?? resultType.GetField("value")
+                                ?? resultType.GetField("Value");
 
                             if (!ReferenceEquals(idField, null))
                             {
@@ -768,18 +927,24 @@ namespace GungeonNearby.Networking.Steam
                 {
                     // Suppress noise from expected "Steamworks not initialized" errors
                     // These happen during early startup before Steamworks is ready
-                    if (tie.InnerException is System.InvalidOperationException && 
-                        tie.InnerException.Message.Contains("Steamworks is not initialized"))
+                    if (
+                        tie.InnerException is System.InvalidOperationException
+                        && tie.InnerException.Message.Contains("Steamworks is not initialized")
+                    )
                     {
                         // Silently fail - will retry next frame
                         throw tie.InnerException; // Re-throw as InvalidOperationException for clean handling
                     }
-                    
-                    Debug.LogError($"[ETGSteamP2P] Error getting Steam ID: {tie.InnerException.GetType().Name}: {tie.InnerException.Message}");
+
+                    Debug.LogError(
+                        $"[ETGSteamP2P] Error getting Steam ID: {tie.InnerException.GetType().Name}: {tie.InnerException.Message}"
+                    );
                 }
                 else
                 {
-                    Debug.LogError($"[ETGSteamP2P] Error getting Steam ID: TargetInvocationException with no inner exception");
+                    Debug.LogError(
+                        $"[ETGSteamP2P] Error getting Steam ID: TargetInvocationException with no inner exception"
+                    );
                 }
                 return 0;
             }
@@ -790,7 +955,9 @@ namespace GungeonNearby.Networking.Steam
             }
             catch (Exception e)
             {
-                Debug.LogError($"[ETGSteamP2P] Error getting Steam ID: {e.GetType().Name}: {e.Message}");
+                Debug.LogError(
+                    $"[ETGSteamP2P] Error getting Steam ID: {e.GetType().Name}: {e.Message}"
+                );
                 return 0;
             }
         }
