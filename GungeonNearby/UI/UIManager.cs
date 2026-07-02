@@ -123,7 +123,7 @@ namespace GungeonNearby.UI
 
         private static void BuildMainPanel()
         {
-            _mainPanel = CreatePanel("GT_MainPanel", 420, 120);
+            _mainPanel = CreatePanel("GN_MainPanel", 420, 120);
             CreateLabel(
                 _mainPanel,
                 "GUNGEON TOGETHER",
@@ -151,7 +151,7 @@ namespace GungeonNearby.UI
 
         private static void BuildSteamPanel()
         {
-            _steamPanel = CreatePanel("GT_SteamPanel", 420, 220);
+            _steamPanel = CreatePanel("GN_SteamPanel", 420, 220);
             _steamStatusText = CreateLabel(
                 _steamPanel,
                 "",
@@ -183,7 +183,7 @@ namespace GungeonNearby.UI
 
         private static void BuildLanPanel()
         {
-            _lanPanel = CreatePanel("GT_LanPanel", 420, 300);
+            _lanPanel = CreatePanel("GN_LanPanel", 420, 300);
             _lanStatusText = CreateLabel(
                 _lanPanel,
                 "",
@@ -360,7 +360,7 @@ namespace GungeonNearby.UI
             TextAnchor anchor
         )
         {
-            var go = new GameObject("GT_Label", typeof(RectTransform), typeof(Text));
+            var go = new GameObject("GN_Label", typeof(RectTransform), typeof(Text));
             go.transform.SetParent(parent.transform, false);
 
             var rt = go.GetComponent<RectTransform>();
@@ -386,7 +386,7 @@ namespace GungeonNearby.UI
         )
         {
             var go = new GameObject(
-                "GT_Btn_" + label,
+                "GN_Btn_" + label,
                 typeof(RectTransform),
                 typeof(Image),
                 typeof(Button)
@@ -420,7 +420,7 @@ namespace GungeonNearby.UI
         )
         {
             var go = new GameObject(
-                "GT_Input_" + placeholder,
+                "GN_Input_" + placeholder,
                 typeof(RectTransform),
                 typeof(Image)
             );

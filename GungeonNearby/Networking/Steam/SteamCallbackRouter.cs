@@ -108,7 +108,7 @@ namespace GungeonNearby.Networking.Steam
             );
 
             var dm = new DynamicMethod(
-                "GT_Callback_" + callbackStructType.Name,
+                "GN_Callback_" + callbackStructType.Name,
                 typeof(void),
                 new Type[] { callbackStructType },
                 typeof(SteamCallbackRouter).Module,

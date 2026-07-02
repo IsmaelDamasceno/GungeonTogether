@@ -66,7 +66,7 @@ namespace GungeonNearby.Networking.Proxies
 
             var spawn = (ProxySpawnedPacket)spawnData;
 
-            _ghost = new GameObject($"GT_Ghost_{NetworkId}");
+            _ghost = new GameObject($"GN_Ghost_{NetworkId}");
             Object.DontDestroyOnLoad(_ghost);
 
             var sr = _ghost.AddComponent<SpriteRenderer>();
