@@ -1,12 +1,12 @@
 name: Feature Request
-description: Suggest a new feature for GungeonTogether
+description: Suggest a new feature for GungeonNearby
 title: "[FEATURE] - "
 labels: ["enhancement"]
 body:
   - type: markdown
     attributes:
       value: |
-        Thank you for taking the time to report a bug in GungeonTogether 🧡🧡🧡
+        Thank you for taking the time to report a bug in GungeonNearby 🧡🧡🧡
         Please fill out the details below to help us understand and fix the issue.
   
   - type: textarea

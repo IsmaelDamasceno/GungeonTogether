@@ -1,0 +1,29 @@
+using System;
+using System.Collections.Generic;
+using GungeonNearby.Networking.Packets;
+using GungeonNearby.Networking.Interfaces;
+using GungeonNearby.Networking.Enums;
+
+namespace GungeonNearby.Networking.Serialization
+{
+    public static class PacketFactory
+    {
+        private static Dictionary<PacketType, Type> _packetTypes = new()
+        {
+            { PacketType.InstancePayload, typeof(PlayerPositionPacket) },
+            { PacketType.ConnectionRequest, typeof(ConnectionRequestPacket) },
+            { PacketType.ConnectionAccepted, typeof(ConnectionAcceptedPacket) },
+            { PacketType.ProxySpawned, typeof(ProxySpawnedPacket) }
+            // Register other packets here
+        };
+
+        public static INetworkPacket Create(PacketType type)
+        {
+            if (_packetTypes.TryGetValue(type, out Type classType))
+            {
+                return (INetworkPacket)Activator.CreateInstance(classType);
+            }
+            return null;
+        }
+    }
+}

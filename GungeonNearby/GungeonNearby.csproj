@@ -1,0 +1,84 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net35</TargetFramework>
+    <AssemblyName>GungeonNearby</AssemblyName>
+    <Description>Gungeon Together Mod</Description>
+    <Version>1.0.0</Version>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="BepInEx">
+      <HintPath>Libs\BepInEx.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="0Harmony">
+      <HintPath>Libs\0Harmony.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="MonoMod.Utils">
+      <HintPath>Libs\MonoMod.Utils.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+
+    <Reference Include="Assembly-CSharp-firstpass">
+      <HintPath>Libs\Assembly-CSharp-firstpass.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Assembly-CSharp">
+      <HintPath>Libs\Assembly-CSharp.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+
+    <Reference Include="PlayMaker" Condition="Exists('Libs\\PlayMaker.dll')">
+      <HintPath>Libs\PlayMaker.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+
+    <Reference Include="ModTheGungeonAPI" Condition="Exists('Libs\\ModTheGungeonAPI.dll')">
+      <HintPath>Libs\ModTheGungeonAPI.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+
+    <Reference Include="Newtonsoft.Json" Condition="Exists('Libs\\Newtonsoft.Json.dll')">
+      <HintPath>Libs\Newtonsoft.Json.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+
+    <!-- Unity (supports both legacy and modular Unity layouts) -->
+    <Reference Include="UnityEngine" Condition="Exists('Libs\\UnityEngine.dll')">
+      <HintPath>Libs\UnityEngine.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference
+      Include="UnityEngine.CoreModule"
+      Condition="Exists('Libs\\UnityEngine.CoreModule.dll')"
+    >
+      <HintPath>Libs\UnityEngine.CoreModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference
+      Include="UnityEngine.IMGUIModule"
+      Condition="Exists('Libs\\UnityEngine.IMGUIModule.dll')"
+    >
+      <HintPath>Libs\UnityEngine.IMGUIModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.UIModule" Condition="Exists('Libs\\UnityEngine.UIModule.dll')">
+      <HintPath>Libs\UnityEngine.UIModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.UI" Condition="Exists('Libs\\UnityEngine.UI.dll')">
+      <HintPath>Libs\UnityEngine.UI.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference
+      Include="UnityEngine.TextRenderingModule"
+      Condition="Exists('Libs\\UnityEngine.TextRenderingModule.dll')"
+    >
+      <HintPath>Libs\UnityEngine.TextRenderingModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+</Project>

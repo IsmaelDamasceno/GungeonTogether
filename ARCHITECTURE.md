@@ -1,4 +1,4 @@
-# GungeonTogether — Network Architecture
+# GungeonNearby — Network Architecture
 
 ## Overview
 

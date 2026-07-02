@@ -1,19 +1,19 @@
 name: Bug Report
-description: Report a bug in GungeonTogether
+description: Report a bug in GungeonNearby
 title: "[BUG] - "
 labels: ["bug", "triage"]
 body:
   - type: markdown
     attributes:
       value: |
-        Thank you for taking the time to report a bug in GungeonTogether 🧡🧡🧡
+        Thank you for taking the time to report a bug in GungeonNearby 🧡🧡🧡
         Please fill out the details below to help us understand and fix the issue.
         
   - type: input
     id: version
     attributes:
-      label: GungeonTogether Version
-      description: What version of GungeonTogether are you using?
+      label: GungeonNearby Version
+      description: What version of GungeonNearby are you using?
       placeholder: "Steam v1.2.3"
     validations:
       required: true
@@ -43,8 +43,8 @@ body:
   - type: textarea
     id: logs
     attributes:
-      label: GungeonTogether Log
-      description: Please provide your GungeonTogether log file🙏🙏🙏🙏
+      label: GungeonNearby Log
+      description: Please provide your GungeonNearby log file🙏🙏🙏🙏
       placeholder: "Copy and paste your log here, or attach it as a file."
     validations:
       required: false

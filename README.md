@@ -1,55 +1,41 @@
-# GungeonTogether
+# GungeonNearby
 
-GungeonTogether is a multiplayer mod for Enter the Gungeon that allows online co-op play using Steam P2P networking.
+GungeonNearby is rework from https://github.com/llamerrr/GungeonTogether. Adding multiplayer for Enter the Gungeon that allows online co-op play using Steam P2P networking or direct LAN connection.
 
 > [!WARNING]
 > _THIS MOD IS STILL VERY EARLY IN DEVELOPMENT - DO NOT EXPECT A FUNCTIONAL EXPERIENCE RIGHT NOW_
 
-WIP WIP WIP WIP WIP WIP pls be nice 
-
-> [!WARNING]
-> ON HOLD, HAD SOME HUGE UNEXPECTED LIFE THINGS GET IN THE WAY, DO NOT WORRY, THIS MOD IS STILL IN DEVELOPMENT AND WE ARE STILL EXTREMELY EXCITED ABOUT THE FUTURE OF GUNGEONTOGETHER
-
-<p align="center" href="https://github.com/llamerrr/GungeonTogether">
-<img height="320" alt="image" src="https://github.com/user-attachments/assets/6c485240-5e3c-44ee-93bb-747d27a0731e"/>
-</p>
-
-The mod is free (because I'm not weird). however I'm broke asf so feel free to donate for my INSANELY INTENSE AND HARD LABOUR (jk)
-My paypal is llamerrr1@gmail.com if you actually want to (for some reason)
-
-## Contributers 
-<p align="center" href="https://github.com/llamerrr/GungeonTogether">
-<img height="100" alt="image" src="https://avatars.githubusercontent.com/u/47313866?v=4"/>
-<img height="100" alt="image" src="https://avatars.githubusercontent.com/u/88169809?v=4"/>
-</p>
+> [!NOTE]
+> This is a fork from https://github.com/llamerrr/GungeonTogether. Check them out!
 
 > [!NOTE]
-> As this mod runs through the steam network, it only works with the steam verison of the game as steamID is required
+> For steam loobies, all players need to play from a official steam copy of the game, if that's not the case, LAN mode must be used instead.
 
 # Features
 ## What works so far
 | System | Status | Notes |
 |:---:|:---:|:---:|
 | Steam invites/lobby system | 🟩 Done | Steam lobby creation and joining functional |
+| LAN Connection | 🟩 Done | Players can host and join lobbies through LAN connections |
 | Steam P2P networking | 🟨 Working | Real connections and Steam invites working |
 | Basic UI | 🟨 Working | Modern multiplayer menu (Ctrl+P) available |
-| Player Synchronization | 🟨 Working | Basic position and animation sync implemented, development ongoing |
-| Enemy Synchronization | 🟥 Planned | Basic hooks into gameobjects |
-| Dungeon Synchronization | 🟥 Planned | Save and load system working |
-| Singleplayer | 🏁 Finished | Yippeeee!!!!! |
+| Player Synchronization | 🟨 Working | Basic position implemented, development ongoing |
+| Enemy Synchronization | 🟥 Planned |  |
+| Dungeon Synchronization | 🟥 Planned |  |
 
 ## Planed for 1.0 release
 - Online co-op multiplayer for Enter the Gungeon
+- LAN networking
 - Steam P2P networking (no dedicated servers required), no parsec or streaming required
 - Real-time synchronisation of
   - Players
   - Enemies
   - Projectiles
   - Dungeon
-- Debug controls for testing
-- Teammate DBNO system + revive mechanic
-- Spectate when dead
 - Enemy scaling (set difficulty in game)
+- Debug controls for testing
+- Spectate when dead
+- Teammate DBNO system + revive mechanic
   
 ## Planned for the future
 - EPIC GAMES SUPPORT (EOS P2P)
@@ -75,12 +61,5 @@ This only applies to people who want to build from source, or if we forget to po
 
 ## Technical Details
 Built with BepInEx framework using Steam P2P networking for a seamless multiplayer experience.
-Unfortunately if you play the game through epic or windows store this mod will not work, as it runs through steams p2p api only, which means you need a steamID for it to work. Sorry guys...
-(EPIC COMING SOON)
-
-> [!NOTE]
-> Wiki!!!
-> https://deepwiki.com/llamerrr/GungeonTogether
-> Thanks to https://github.com/TheExploration
 
 # 1.0 release coming one day!!!!!!
