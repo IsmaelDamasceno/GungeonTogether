@@ -162,14 +162,20 @@ namespace GungeonNearby.Networking.Proxies
         public void Update()
         {
             if (!_isLocal)
+            {
                 return;
+            }
 
             var player = GameManager.Instance?.PrimaryPlayer;
             if (player == null)
+            {
                 return;
+            }
 
             if (Time.realtimeSinceStartup < _nextPositionSend)
+            {
                 return;
+            }
             _nextPositionSend = Time.realtimeSinceStartup + PositionInterval;
 
             Vector3 p = player.transform.position;

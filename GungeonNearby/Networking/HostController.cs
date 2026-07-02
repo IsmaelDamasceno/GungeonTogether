@@ -10,8 +10,8 @@ namespace GungeonNearby.Networking
     public class HostController : IHost
     {
         private readonly ITransport _transport;
-        private readonly List<ulong> _connectedClients = new List<ulong>();
-        private readonly Dictionary<ulong, ulong> _assignedIds = new Dictionary<ulong, ulong>();
+        private readonly List<ulong> _connectedClients = [];
+        private readonly Dictionary<ulong, ulong> _assignedIds = [];
         private ulong _nextClientId = 2; // host is always 1
 
         public HostController(ITransport transport)

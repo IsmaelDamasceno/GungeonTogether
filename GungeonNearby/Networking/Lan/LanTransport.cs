@@ -85,12 +85,14 @@ namespace GungeonNearby.Networking.Lan
             {
                 sessionReqs = _sessionRequests.ToArray();
                 _sessionRequests.Clear();
-                packets = _incomingPackets.ToArray();
+                packets = [.. _incomingPackets];
                 _incomingPackets.Clear();
             }
 
             foreach (var id in sessionReqs)
+            {
                 OnSessionRequested?.Invoke(id);
+            }
 
             foreach (var p in packets)
             {
@@ -218,6 +220,9 @@ namespace GungeonNearby.Networking.Lan
                 socket.EndConnect(ar);
 
                 TcpClient client = new() { Client = socket };
+                NetworkStream stream = client.GetStream();
+                stream.Write(BitConverter.GetBytes(LocalId), 0, 8);
+
                 RegisterTcpClient(targetId, client);
             }
             catch (Exception e)
@@ -243,6 +248,7 @@ namespace GungeonNearby.Networking.Lan
                 {
                     IPEndPoint remote = new(IPAddress.Any, 0);
                     byte[] data = _udp.Receive(ref remote);
+                    Debug.Log($"[LAN] Received udp from {remote}");
                     Enqueue(EncodeEndpoint(remote), data);
                 }
                 catch
@@ -260,7 +266,12 @@ namespace GungeonNearby.Networking.Lan
                 try
                 {
                     TcpClient client = _tcpListener.AcceptTcpClient();
-                    IPEndPoint remote = (IPEndPoint)client.Client.RemoteEndPoint;
+                    IPEndPoint remoteAddr = (IPEndPoint)client.Client.RemoteEndPoint;
+
+                    byte[] header = new byte[8];
+                    ReadExact(client.GetStream(), header, 8);
+                    int remoteListenPort = (int)BitConverter.ToUInt64(header, 0);
+                    IPEndPoint remote = new(remoteAddr.Address, remoteListenPort);
                     ulong remoteId = EncodeEndpoint(remote);
                     Debug.Log($"[LAN] Accepted TCP from {remote} (remoteId={remoteId})");
 
