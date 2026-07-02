@@ -59,7 +59,9 @@ namespace GungeonNearby.Networking
             if (!_connectedClients.Contains(senderId))
                 HandleJoinRequest(senderId);
 
-            Debug.Log($"[Host] Position from {senderId}: ({packet.Position.x:0.00}, {packet.Position.y:0.00})");
+            Debug.Log(
+                $"[Host] Position from {senderId}: ({packet.Position.x:0.00}, {packet.Position.y:0.00})"
+            );
         }
 
         public void SendPacket(ulong targetId, INetworkPacket packet, bool reliable = true)
@@ -73,7 +75,9 @@ namespace GungeonNearby.Networking
             foreach (var client in _connectedClients)
             {
                 if (client != excludeId)
+                {
                     _transport.Send(client, data, reliable);
+                }
             }
         }
     }
