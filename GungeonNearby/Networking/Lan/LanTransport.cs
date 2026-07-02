@@ -4,7 +4,6 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using GungeonNearby.Networking.Interfaces;
-using GungeonNearby.Systems.Logging;
 using Debug = GungeonNearby.Systems.Logging.Debug;
 
 namespace GungeonNearby.Networking.Lan
@@ -90,21 +89,12 @@ namespace GungeonNearby.Networking.Lan
                 _incomingPackets.Clear();
             }
 
-            if (packets.Length > 0 || sessionReqs.Length > 0)
-            {
-                Debug.Log(
-                    $"[LAN] Update: dispatching {packets.Length} packets, {sessionReqs.Length} session reqs"
-                );
-            }
-
             foreach (var id in sessionReqs)
                 OnSessionRequested?.Invoke(id);
 
             foreach (var p in packets)
             {
-                Debug.Log($"[LAN] Update: firing OnPacketReceived for sender={p.SenderId}");
                 OnPacketReceived?.Invoke(p.SenderId, p.Data);
-                Debug.Log($"[LAN] Update: OnPacketReceived returned for sender={p.SenderId}");
             }
         }
 
@@ -182,7 +172,7 @@ namespace GungeonNearby.Networking.Lan
                 if (!_tcpStreams.ContainsKey(targetId))
                 {
                     Debug.LogWarning(
-                        $"[LAN] SendTcp: no stream for {targetId}, attempting ConnectTcp (THIS BLOCKS MAIN THREAD)"
+                        $"[LAN] SendTcp: no stream for {targetId}, attempting ConnectTcp"
                     );
                     ConnectTcp(targetId);
                 }
@@ -195,13 +185,11 @@ namespace GungeonNearby.Networking.Lan
             try
             {
                 byte[] header = BitConverter.GetBytes(data.Length);
-                Debug.Log($"[LAN] stream.Write to {targetId} ({data.Length} bytes)...");
                 lock (stream)
                 {
                     stream.Write(header, 0, 4);
                     stream.Write(data, 0, data.Length);
                 }
-                Debug.Log($"[LAN] stream.Write to {targetId} done.");
             }
             catch (Exception e)
             {
@@ -301,7 +289,6 @@ namespace GungeonNearby.Networking.Lan
                 {
                     ReadExact(stream, header, 4);
                     int length = BitConverter.ToInt32(header, 0);
-                    Debug.Log($"[LAN] TCP recv from {remoteId}: length={length}");
                     byte[] data = new byte[length];
                     ReadExact(stream, data, length);
                     Enqueue(remoteId, data);
@@ -324,11 +311,9 @@ namespace GungeonNearby.Networking.Lan
 
         private void Enqueue(ulong senderId, byte[] data)
         {
-            Debug.Log($"[LAN] Enqueue: acquiring queueLock (sender={senderId})");
             lock (_queueLock)
             {
                 _incomingPackets.Enqueue(new IncomingPacket { SenderId = senderId, Data = data });
-                Debug.Log($"[LAN] Enqueue: done, queue size={_incomingPackets.Count}");
             }
         }
     }

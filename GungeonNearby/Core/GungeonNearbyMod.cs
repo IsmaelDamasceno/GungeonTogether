@@ -3,10 +3,11 @@ using GungeonNearby.Networking;
 using GungeonNearby.Networking.Proxies;
 using GungeonNearby.UI;
 using HarmonyLib;
+using UnityEngine;
 
 namespace GungeonNearby.Core
 {
-    [BepInPlugin("com.ismasel.GungeonNearby", "Gungeon Together", "1.0.0")]
+    [BepInPlugin("com.ismasel.GungeonNearby", "Gungeon Nearby", "1.0.0")]
     [BepInDependency("etgmodding.etg.mtgapi")]
     public class GungeonNearbyMod : BaseUnityPlugin
     {
@@ -15,7 +16,7 @@ namespace GungeonNearby.Core
         private void Awake()
         {
             Instance = this;
-            Logger.LogInfo("Gungeon Together started!");
+            Logger.LogInfo("Gungeon Nearby started!");
 
             try
             {
@@ -36,7 +37,12 @@ namespace GungeonNearby.Core
                 UIManager.Initialise();
                 Logger.LogInfo("UIManager initialized.");
 
-                Logger.LogInfo("Gungeon Together fully initialized!");
+                // Initialise in-game log console overlay (F10 to toggle)
+                var logConsoleGo = new GameObject("GungeonNearby_LogConsole");
+                DontDestroyOnLoad(logConsoleGo);
+                logConsoleGo.AddComponent<LogConsoleOverlay>();
+
+                Logger.LogInfo("Gungeon Nearby fully initialized!");
             }
             catch (System.Exception ex)
             {
@@ -64,6 +70,9 @@ namespace GungeonNearby.Core
         /// <summary>
         /// Statically Initialize Relevant Proxies
         /// </summary>
-        private void InitProxies() { }
+        private void InitProxies()
+        {
+            PlayerProxy.Initialize();
+        }
     }
 }

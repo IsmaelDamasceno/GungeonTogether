@@ -24,8 +24,9 @@ namespace GungeonNearby.Networking.Proxies
             _isLocal = isLocal;
         }
 
-        static PlayerProxy()
+        public static void Initialize()
         {
+            Debug.Log("[PlayerProxy] Initializing patch listener for player spawned");
             GameEvents.PlayerSpawned += OnLocalPlayerSpawned;
         }
 
@@ -41,6 +42,8 @@ namespace GungeonNearby.Networking.Proxies
             {
                 return;
             }
+
+            Debug.Log($"[PlayerProxy] Local Player spawned, creating local proxy");
 
             var proxy = new PlayerProxy(networkId, isLocal: true);
             NetworkObjectRegistry.Instance.Register(proxy);
@@ -65,11 +68,6 @@ namespace GungeonNearby.Networking.Proxies
 
             _ghost = new GameObject($"GT_Ghost_{NetworkId}");
             Object.DontDestroyOnLoad(_ghost);
-
-            foreach (var c in ETGMod.Assets.Collections)
-            {
-                Debug.Log($"[Collection] {c.name}");
-            }
 
             var sr = _ghost.AddComponent<SpriteRenderer>();
             sr.sprite = TryBuildSprite(spawn.CharacterIdentity) ?? CreateSquareSprite();

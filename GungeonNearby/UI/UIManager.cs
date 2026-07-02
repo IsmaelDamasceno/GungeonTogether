@@ -1,6 +1,9 @@
+using System.Collections;
+using GungeonNearby.Core;
 using GungeonNearby.Networking;
 using GungeonNearby.Networking.Lan;
 using GungeonNearby.Networking.Steam;
+using GungeonNearby.Utils;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -29,31 +32,62 @@ namespace GungeonNearby.UI
 
         private static bool _built;
 
-        public static void Initialise() { }
+        public static void Initialise()
+        {
+            GungeonNearbyMod.Instance.StartCoroutine(ActivateOnFoyer());
+        }
+
+        private static IEnumerator ActivateOnFoyer()
+        {
+            Debug.Log("[UI] Waiting for Foyer...");
+            yield return FoyerUtils.WaitForFoyer();
+            Debug.Log("[UI] Foyer initialized, ensuring built...");
+            EnsureBuilt();
+            Debug.Log("[UI] Setting visibility");
+            SetVisible(true);
+        }
 
         public static void Update()
         {
             try
             {
                 if (GameManager.Instance == null)
-                    return;
-                if (!GameManager.Instance.IsFoyer)
                 {
-                    SetVisible(false);
                     return;
                 }
 
-                EnsureBuilt();
-                UpdateStatus();
-                SetVisible(true);
+                if (GameManager.Instance.IsFoyer)
+                {
+                    HandleVisibilityToggle();
+                    UpdateStatus();
+                }
+                else
+                {
+                    SetVisible(false);
+                }
             }
             catch { }
+        }
+
+        private static void HandleVisibilityToggle()
+        {
+            if (!_root)
+            {
+                return;
+            }
+
+            if (InputUtils.IsKeyCtrl() && Input.GetKeyDown(KeyCode.P))
+            {
+                SetVisible(!_root.activeSelf);
+            }
         }
 
         private static void EnsureBuilt()
         {
             if (_built)
+            {
                 return;
+            }
 
             var canvasGo = new GameObject("GungeonNearby_Canvas");
             Object.DontDestroyOnLoad(canvasGo);
@@ -298,8 +332,7 @@ namespace GungeonNearby.UI
 
         private static Font _font;
 
-        private static Font GetFont() =>
-            _font ?? (_font = Resources.GetBuiltinResource<Font>("Arial.ttf"));
+        private static Font GetFont() => _font ??= Resources.GetBuiltinResource<Font>("Arial.ttf");
 
         private static GameObject CreatePanel(string name, float width, float height)
         {

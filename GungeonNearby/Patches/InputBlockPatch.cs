@@ -1,21 +1,17 @@
+using GungeonNearby.Utils;
 using HarmonyLib;
 using UnityEngine;
-using UnityEngine.EventSystems;
-using UnityEngine.UI;
 
 namespace GungeonNearby.Patches
 {
     [HarmonyPatch]
     static class InputBlockPatch
     {
-        private static bool IsTyping() =>
-            EventSystem.current?.currentSelectedGameObject?.GetComponent<InputField>() != null;
-
         [HarmonyPatch(typeof(Input), nameof(Input.GetKey), typeof(KeyCode))]
         [HarmonyPrefix]
         static bool GetKey(ref bool __result)
         {
-            if (!IsTyping())
+            if (!InputUtils.IsTyping())
                 return true;
             __result = false;
             return false;
@@ -25,7 +21,7 @@ namespace GungeonNearby.Patches
         [HarmonyPrefix]
         static bool GetKeyStr(ref bool __result)
         {
-            if (!IsTyping())
+            if (!InputUtils.IsTyping())
                 return true;
             __result = false;
             return false;
@@ -35,7 +31,7 @@ namespace GungeonNearby.Patches
         [HarmonyPrefix]
         static bool GetKeyDown(ref bool __result)
         {
-            if (!IsTyping())
+            if (!InputUtils.IsTyping())
                 return true;
             __result = false;
             return false;
@@ -45,7 +41,7 @@ namespace GungeonNearby.Patches
         [HarmonyPrefix]
         static bool GetKeyDownStr(ref bool __result)
         {
-            if (!IsTyping())
+            if (!InputUtils.IsTyping())
                 return true;
             __result = false;
             return false;
@@ -55,7 +51,7 @@ namespace GungeonNearby.Patches
         [HarmonyPrefix]
         static bool GetKeyUp(ref bool __result)
         {
-            if (!IsTyping())
+            if (!InputUtils.IsTyping())
                 return true;
             __result = false;
             return false;
@@ -65,7 +61,7 @@ namespace GungeonNearby.Patches
         [HarmonyPrefix]
         static bool GetKeyUpStr(ref bool __result)
         {
-            if (!IsTyping())
+            if (!InputUtils.IsTyping())
                 return true;
             __result = false;
             return false;
