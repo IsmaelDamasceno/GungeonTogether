@@ -248,13 +248,14 @@ namespace GungeonNearby.Networking.Lan
                 {
                     IPEndPoint remote = new(IPAddress.Any, 0);
                     byte[] data = _udp.Receive(ref remote);
-                    Debug.Log($"[LAN] Received udp from {remote}");
                     Enqueue(EncodeEndpoint(remote), data);
                 }
                 catch
                 {
                     if (!_running)
+                    {
                         return;
+                    }
                 }
             }
         }
@@ -268,10 +269,10 @@ namespace GungeonNearby.Networking.Lan
                     TcpClient client = _tcpListener.AcceptTcpClient();
                     IPEndPoint remoteAddr = (IPEndPoint)client.Client.RemoteEndPoint;
 
-                    byte[] header = new byte[8];
-                    ReadExact(client.GetStream(), header, 8);
-                    int remoteListenPort = (int)BitConverter.ToUInt64(header, 0);
-                    IPEndPoint remote = new(remoteAddr.Address, remoteListenPort);
+                    IPEndPoint remote = new(
+                        remoteAddr.Address,
+                        ExtractRemotePortFromHeader(client)
+                    );
                     ulong remoteId = EncodeEndpoint(remote);
                     Debug.Log($"[LAN] Accepted TCP from {remote} (remoteId={remoteId})");
 
@@ -284,9 +285,18 @@ namespace GungeonNearby.Networking.Lan
                 catch
                 {
                     if (!_running)
+                    {
                         return;
+                    }
                 }
             }
+        }
+
+        private int ExtractRemotePortFromHeader(TcpClient client)
+        {
+            byte[] header = new byte[8];
+            ReadExact(client.GetStream(), header, 8);
+            return (int)BitConverter.ToUInt64(header, 0);
         }
 
         private void TcpReceiveLoop(ulong remoteId, TcpClient client)

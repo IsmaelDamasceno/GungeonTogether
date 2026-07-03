@@ -1,4 +1,5 @@
 using GungeonNearby.Core;
+using GungeonNearby.Helpers;
 using GungeonNearby.Networking.Enums;
 using GungeonNearby.Networking.Interfaces;
 using GungeonNearby.Networking.Packets;
@@ -15,6 +16,9 @@ namespace GungeonNearby.Networking.Proxies
 
         private float _nextPositionSend;
         private const float PositionInterval = 0.25f;
+        private SpriteHelper _spriteHelper;
+        private tk2dBaseSprite _tkSprite;
+        private SpriteRenderer _renderer;
 
         private GameObject _ghost;
 
@@ -47,6 +51,7 @@ namespace GungeonNearby.Networking.Proxies
 
             var proxy = new PlayerProxy(networkId, isLocal: true);
             NetworkObjectRegistry.Instance.Register(proxy);
+            proxy._tkSprite = player.sprite;
 
             var spawnPacket = new ProxySpawnedPacket
             {
@@ -55,108 +60,42 @@ namespace GungeonNearby.Networking.Proxies
                 OwnerId = networkId,
                 CharacterIdentity = player.characterIdentity,
             };
-            proxy.OnSpawned(spawnPacket);
             NetworkManager.Instance.RelayPlayerState(spawnPacket, reliable: true);
         }
 
         public void OnSpawned(INetworkPacket spawnData)
         {
             if (_isLocal)
+            {
                 return;
+            }
 
             var spawn = (ProxySpawnedPacket)spawnData;
 
             _ghost = new GameObject($"GN_Ghost_{NetworkId}");
             Object.DontDestroyOnLoad(_ghost);
 
-            var sr = _ghost.AddComponent<SpriteRenderer>();
-            sr.sprite = TryBuildSprite(spawn.CharacterIdentity) ?? CreateSquareSprite();
-            sr.sortingOrder = 100;
+            _renderer = _ghost.AddComponent<SpriteRenderer>();
+            _spriteHelper = new SpriteHelper(spawn.GetCollection());
+            _renderer.sprite = _spriteHelper.GetFrame(0);
+            _renderer.sortingOrder = 100;
             _ghost.transform.localScale = Vector3.one;
 
             Debug.Log(
-                $"[PlayerProxy] Ghost for {NetworkId} ({spawn.CharacterIdentity}) sprite={sr.sprite?.name ?? "null"}"
+                $"[PlayerProxy] Ghost for {NetworkId} ({spawn.CharacterIdentity}) sprite={_renderer.sprite?.name ?? "null"}"
             );
-        }
-
-        private static readonly System.Collections.Generic.Dictionary<
-            PlayableCharacters,
-            string
-        > CharacterCollections = new()
-        {
-            { PlayableCharacters.Soldier, "Marine" },
-            { PlayableCharacters.Pilot, "SpaceRogue" },
-            { PlayableCharacters.Convict, "Convict" },
-            { PlayableCharacters.Robot, "Robot" },
-            { PlayableCharacters.Guide, "Guide" },
-            { PlayableCharacters.CoopCultist, "CoopCultist" },
-            { PlayableCharacters.Gunslinger, "Gunslinger_Collection" },
-            { PlayableCharacters.Bullet, "Playable_Bullet_Man" },
-        };
-
-        private static Sprite TryBuildSprite(PlayableCharacters identity)
-        {
-            try
-            {
-                if (!CharacterCollections.TryGetValue(identity, out string collectionName))
-                {
-                    Debug.LogWarning(
-                        $"[PlayerProxy] No collection mapping for character '{identity}'"
-                    );
-                    return null;
-                }
-                var collection = ETGMod.Assets.FindCollectionOfName(collectionName);
-                if (collection == null)
-                {
-                    Debug.LogWarning($"[PlayerProxy] No collection found for '{collectionName}'");
-                    return null;
-                }
-
-                var def = collection.spriteDefinitions[0];
-                var tex = def.material?.mainTexture as Texture2D;
-                if (tex == null)
-                {
-                    Debug.LogWarning(
-                        $"[PlayerProxy] Collection '{collectionName}' has no texture on def[0]"
-                    );
-                    return null;
-                }
-
-                // Convert UV coords to pixel rect
-                var uvs = def.uvs;
-                float x = uvs[0].x * tex.width;
-                float y = uvs[0].y * tex.height;
-                float w = Mathf.Abs(uvs[1].x - uvs[0].x) * tex.width;
-                float h = Mathf.Abs(uvs[2].y - uvs[0].y) * tex.height;
-
-                Debug.Log(
-                    $"[PlayerProxy] Atlas '{tex.name}' {tex.width}x{tex.height}, rect=({x},{y},{w},{h})"
-                );
-                return Sprite.Create(tex, new Rect(x, y, w, h), new Vector2(0.5f, 0.5f), 16f);
-            }
-            catch (System.Exception ex)
-            {
-                Debug.LogError($"[PlayerProxy] TryBuildSprite failed: {ex.Message}");
-                return null;
-            }
-        }
-
-        private static Sprite CreateSquareSprite()
-        {
-            var tex = new Texture2D(4, 4);
-            var pixels = new Color[16];
-            for (int i = 0; i < pixels.Length; i++)
-                pixels[i] = Color.white;
-            tex.SetPixels(pixels);
-            tex.Apply();
-            return Sprite.Create(tex, new Rect(0, 0, 4, 4), new Vector2(0.5f, 0.5f), 16f);
         }
 
         public void HandlePacket(INetworkPacket packet)
         {
-            var pos = (PlayerPositionPacket)packet;
-            if (_ghost != null)
-                _ghost.transform.position = new Vector3(pos.Position.x, pos.Position.y, 0f);
+            var payload = (PlayerPositionPacket)packet;
+            if (_ghost == null)
+            {
+                return;
+            }
+
+            _ghost.transform.position = new Vector3(payload.Position.x, payload.Position.y, 0f);
+            _renderer.sprite = _spriteHelper.GetFrame(payload.AnimationFrame);
         }
 
         public void Update()
@@ -183,11 +122,9 @@ namespace GungeonNearby.Networking.Proxies
             {
                 NetworkId = NetworkId,
                 Position = new Vector2(p.x, p.y),
-                Velocity = Vector2.zero,
-                Rotation = player.transform.eulerAngles.z,
                 IsGrounded = true,
                 IsDodgeRolling = false,
-                AnimationState = 0,
+                AnimationFrame = _tkSprite.spriteId,
             };
 
             NetworkManager.Instance.RelayPlayerState(packet, reliable: false);
@@ -196,7 +133,9 @@ namespace GungeonNearby.Networking.Proxies
         public void OnDespawned()
         {
             if (_ghost != null)
+            {
                 Object.Destroy(_ghost);
+            }
         }
     }
 }
